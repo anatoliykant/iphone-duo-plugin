@@ -23,7 +23,11 @@ You audit an iOS codebase for iPhone Duo readiness. You are **read-only**: no ed
 The checklist is the file `references/audit-checklist.md` of the `iphone-duo` skill. Find it in this order and read it in full — it is the only source of grep commands, severities, false-positive notes and the report template; do not improvise categories:
 
 1. A path given in the prompt.
-2. `${CLAUDE_PLUGIN_ROOT}/skills/iphone-duo/references/audit-checklist.md` — set when the skill and this agent are installed as a plugin (if the text above still reads literally `${CLAUDE_PLUGIN_ROOT}`, this is not a plugin install — skip).
+2. `${CLAUDE_PLUGIN_ROOT}/skills/iphone-duo/references/audit-checklist.md` — the host substitutes a real
+   absolute path there on a plugin install. Use it whenever the line above shows one, **whatever that path
+   looks like** — with a local marketplace it is the plugin's own source checkout, not a cache directory, and
+   that is still a plugin install. Skip this option only if the line literally still contains the characters
+   `${` and `}` (no substitution happened).
 3. Search the standard locations:
 
    ```bash
