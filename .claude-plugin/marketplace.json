@@ -1,0 +1,16 @@
+{
+  "name": "anatoliykant-plugins",
+  "description": "Claude Code plugins by Anatolii Podkladov: iPhone Duo readiness for iOS apps and HIG design review.",
+  "owner": {
+    "name": "Anatolii Podkladov",
+    "url": "https://github.com/anatoliykant"
+  },
+  "plugins": [
+    {
+      "name": "iphone-duo",
+      "source": "./",
+      "description": "iPhone Duo adaptation, readiness audit agent and HIG design review for iOS apps.",
+      "category": "development"
+    }
+  ]
+}
