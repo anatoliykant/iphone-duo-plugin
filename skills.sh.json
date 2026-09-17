@@ -1,0 +1,14 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "iPhone Duo",
+      "description": "Two halves of the same job on Apple's foldable iPhone: review the mockup before anyone writes code, then build and audit the app against the same rules.",
+      "skills": [
+        "hig-design-review",
+        "iphone-duo"
+      ]
+    }
+  ]
+}
