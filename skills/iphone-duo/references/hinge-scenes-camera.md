@@ -118,7 +118,7 @@ UIApplication.shared.activateSceneSession(for: request) { error in
 
 Older spelling `requestSceneSessionActivation(_:userActivity:options:errorHandler:)` — EXISTING(iOS 13), deprecated in 17; same `errorHandler` idea.
 
-Preferred in menus and context menus: `UIWindowScene.ActivationAction` (EXISTING(iOS 15, verified as `UIWindowSceneActivationAction`)) — 111464 (PROSE): it **"hides itself when new windows aren't available"**. The talk prose says "UIWindowSceneActivation"; the shipping type is `UIWindowScene.ActivationAction` — verify whether 27.1 adds anything beyond the auto-hide. SwiftUI `openWindow` on iOS is scene-request-backed as well; expect it to fail on the outer display.
+Preferred in menus and context menus: `UIWindowScene.ActivationAction` (EXISTING(iOS 15, verified as `UIWindowSceneActivationAction`)) — 111464 4:11: it **"automatically hides when new windows aren't available"**. Apple's transcript spells it `UIWindowSceneActivationAction` (the Objective-C name of `UIWindowScene.ActivationAction`); the truncated "UIWindowSceneActivation" was a YouTube-caption artifact. Verify whether 27.1 adds anything beyond the auto-hide. SwiftUI `openWindow` on iOS is scene-request-backed as well; expect it to fail on the outer display.
 
 Multi-scene hygiene (all EXISTING): state per scene, not per app singleton; present from `view.window?.windowScene`; no `UIApplication.shared.windows.first`; `UIWindow(windowScene:)` for every window (`layout-size-classes-safe-area.md` §Windows).
 
@@ -223,7 +223,7 @@ extension AVCaptureDevice {
 }
 ```
 
-Both front cameras report `.front`, "but on iPhone Duo the displays can face opposite directions, so a front camera isn't always looking at you." Position is no longer enough — use **direction relative to your view**.
+Both front cameras report `.front`, but 111465 3:14: "things get more interesting on iPhone Duo, where displays can face opposite directions. This would mean a front camera is not always looking at you." Position is no longer enough — use **direction relative to your view**.
 
 ### Direction coordinator — lives in **AVKit**
 

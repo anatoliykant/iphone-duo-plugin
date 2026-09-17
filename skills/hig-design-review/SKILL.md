@@ -29,7 +29,7 @@ A Duo review needs at least one frame per target class: compact (outer display) 
 1. **Intake** — collect frames, sizes, structure, renders and existing comments (`references/intake-figma-sketch.md`). Map every frame to a size class (compact / regular / Split View half) by its bounding box. Before judging D1, scan **every page** of the file for Duo-sized frames (≈ 466 / 678 / 626 / 890 pt) or pages named Duo / fold / hinge — Duo mockups often live on their own page, outside the node ids you were given.
 2. **Inventory per screen** — navigation pattern (tab bar, nav bar, sidebar, modal), bars and their items (title + symbol?), lists / grids (column count), text blocks (longest line), interactive controls near the frame's horizontal centre, custom chrome (hand-drawn bars, floating panels), safe-area treatment (content under the camera / home indicator?).
 3. **General HIG pass** — walk `references/hig-general-checklist.md`; fetch the relevant HIG page JSON for each area you flag and cite the sentence.
-4. **Duo pass** — walk `references/duo-design-rules.md` D1–D18 for every screen that will ship on Duo.
+4. **Duo pass** — walk `references/duo-design-rules.md` D1–D27 for every screen that will ship on Duo.
 5. **Report** — `references/report-template.md`; one row per finding, severity, node id / artboard, rule id, citation, concrete fix.
 6. **Verdict** — Ready for implementation / Ready with notes / Not ready (rules in §Verdict).
 7. **Figma comments (optional)** — only after the user has seen the report and confirmed, or when the request explicitly says "post comments": one comment per BLOCKER / MUST-FIX finding on its node, prefixed `[HIG review]`, text = rule id + one sentence + citation. Never post NOTE-level items. Never edit the file.
@@ -69,7 +69,7 @@ The Duo HIG page's change log currently ends at 2026-09-09; check it on every ru
 | File | Read when |
 |---|---|
 | `references/intake-figma-sketch.md` | Pulling frames, sizes, renders, comments from Figma via MCP; Sketch exports; size-class mapping |
-| `references/duo-design-rules.md` | The iPhone Duo checklist D1–D18 with sources (HIG Duo page, tech talks 111466 / 111462 / 111463) |
+| `references/duo-design-rules.md` | The iPhone Duo checklist D1–D27 with sources (HIG Duo page, tech talks 111466 / 111462 / 111463) |
 | `references/hig-general-checklist.md` | General iOS checks per area + how to fetch and cite the live HIG JSON pages |
 | `references/report-template.md` | Report shape, severity rows, verdict block, Figma comment format |
 

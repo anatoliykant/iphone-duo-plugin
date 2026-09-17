@@ -15,7 +15,7 @@ Points are derived @3x (466 × 678 outer, 626 × 890 inner, ~313 Split View half
 ## Findings
 | # | Sev | Screen (node id / artboard) | Rule | What is wrong | Source | Fix (which system component / HIG pattern) |
 |---|---|---|---|---|---|---|
-| 1 | BLOCKER | Home — inner (12:345) | D14 | Primary CTA centred on the fold line | HIG Duo "Don't … content and controls spanning the fold" | Anchor the CTA to the trailing region or the bottom bar |
+| 1 | BLOCKER | Home — inner (12:345) | D14 | Primary CTA centred on the fold line | HIG Duo, Reserved regions: "Use the reserved region APIs to keep important elements clear of the center" | Anchor the CTA to the trailing region or the bottom bar |
 …
 
 ## Implementation constraints (for the developer, when "Ready with notes")
@@ -41,6 +41,7 @@ Not posted | Posted N comments on: <node ids> (prefix `[HIG review]`)
 
 - One row per finding; collapse identical issues across screens into one row listing the screens.
 - `Rule` = D-id from `duo-design-rules.md` or an area id from `hig-general-checklist.md` (e.g. `G-A2`); `Source` = HIG anchor / quoted sentence or talk id + timecode. No source → severity ≤ SHOULD and say "reviewer judgment".
+- Anything inside quotation marks is **verbatim from the fetched page** — paste it, never reconstruct it from memory, and never label a citation "HIG Do"/"HIG Don't" (the Duo page has no such blocks). A quote that goes into a Figma comment is public and attributed to Apple: if you cannot paste the sentence, paraphrase without quotes and name the section instead.
 - `Fix` names the system component or HIG pattern, not a redesign ("system tab bar → sidebar on regular width", "`NavigationSplitView` list + detail").
 - Numbers you measured (tap targets, type sizes, contrast) come with the value and the threshold ("38 × 38 pt < 44 × 44").
 - Visual-only reviews mark measured checks "cannot verify from export".
@@ -51,7 +52,7 @@ Not posted | Posted N comments on: <node ids> (prefix `[HIG review]`)
 
 ```
 [HIG review] D14 BLOCKER — primary CTA sits on the fold line of the inner display.
-Apple HIG, Designing for iPhone Duo: "content and controls that span the fold become harder to see." Move it to the trailing region or the bottom bar.
+Apple HIG, Designing for iPhone Duo (Reserved regions): "Use the reserved region APIs to keep important elements clear of the center if the system doesn't move them automatically." Move it to the trailing region or the bottom bar.
 ```
 
 Never post NOTE items, never post twice for the same finding (check `get_comments` first), never resolve or delete others' comments.

@@ -21,7 +21,7 @@ Below 27.1, new symbols go into `// TODO:` comments and the report's **Pending i
 ## What Apple provides — Xcode 27.1 + Device Hub
 
 - **Xcode 27.1** contains the iPhone Duo SDK and simulator. Status on developer.apple.com/iphone-duo/ (2026-09-10): "Xcode 27.1 beta — Coming later this month."
-- **Device Hub** replaces Simulator.app in Xcode 27. "On-screen control buttons let you open, close, rotate, and fold the device to check your layout in every pose." (111461) — **buttons only; no documented CLI** (`simctl` has no fold/pose subcommand; `simctl ui` covers appearance / increase_contrast / content_size only).
+- **Device Hub** replaces Simulator.app in Xcode 27. 111461 1:25: "Use the control buttons at the bottom of the screen to open, close, rotate, or fold iPhone Duo." — **buttons only; no documented CLI** (`simctl` has no fold/pose subcommand; `simctl ui` covers appearance / increase_contrast / content_size only).
 - **Split View** in the simulator: drag the home indicator sideways to bring in a second app.
 - Poses to cover: closed portrait, closed landscape, open flat portrait (the only horizontal-bar pose), open landscape, partially folded book (hinge vertical), table/laptop (hinge horizontal), tent; each with and without Split View; PiP stacking; scene accessory on/off for camera apps.
 - **Not documented — do not invent:** the Duo `simctl` device-type identifier, a `#Preview` trait for Duo, Instruments templates for Duo. Third-party (bitrise.io) mentions `devicectl device appResize start/set/observe` and `devicectl device orientation` — unverified, not Apple.
@@ -101,6 +101,21 @@ claude mcp add --transport stdio xcode -- xcrun mcpbridge
 
 The `documentation/…` HTML pages are a JavaScript app; their `tutorials/data/…json` twins return real 404/200 and real content — check those.
 
+## Read a talk
+
+The talk pages are plain HTML — transcript and sample code are in the markup, no JavaScript needed. Use this instead of YouTube captions; it is the source every VERBATIM block and talk quote in these references was checked against (2026-09-16).
+
+```bash
+T=111463
+curl -s -A "Mozilla/5.0" "https://developer.apple.com/videos/play/tech-talks/$T/" -o /tmp/$T.html
+# transcript, one sentence per line with its start time in seconds
+grep -o '<span data-start="[0-9.]*">[^<]*' /tmp/$T.html | sed 's/<span data-start="//;s/">/\t/'
+# sample code: title + timecode
+grep -oE 'data-start-time="[0-9]+"[^>]*>[^<]+' /tmp/$T.html
+```
+
+Prose names an API loosely — 111463 says "the reservedRegion method" while the Code section writes `reservedRegions(kind:)`. **The Code section wins**; the transcript is for intent and timecodes.
+
 ## Sources
 
 | URL | Status (2026-09-10/11) |
@@ -108,7 +123,7 @@ The `documentation/…` HTML pages are a JavaScript app; their `tutorials/data/�
 | https://developer.apple.com/iphone-duo/ | landing; "Xcode 27.1 beta — Coming later this month" |
 | https://developer.apple.com/news/?id=vn8abkxx | 2026-09-09 news post, no version details |
 | https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo | HTML is JS-only; content at https://developer.apple.com/tutorials/data/design/human-interface-guidelines/designing-for-iphone-duo.json |
-| https://developer.apple.com/videos/play/tech-talks/111461/ … /111466/ | chapter text + Code sections (not transcripts); YouTube ids in `device-and-platform.md` |
+| https://developer.apple.com/videos/play/tech-talks/111461/ … /111466/ | chapter list, **full official transcript** and Code sections, all inline in the HTML (see §Read a talk); YouTube ids in `device-and-platform.md` |
 | https://developer.apple.com/videos/play/wwdc2026/278/ | "Modernize your UIKit app" — scene lifecycle requirement, `displayScale`, `effectiveGeometry`, `UIRequiresFullScreen` |
 | https://developer.apple.com/documentation/UIKit/preparing-your-app-for-iphone-duo | **404** |
 | Xcode 27.1 release notes; `documentation/updates/{swiftui,uikit}` | not published / not updated |

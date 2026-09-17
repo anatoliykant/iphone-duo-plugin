@@ -154,7 +154,7 @@ overlay.makeKeyAndVisible()
 
 ## Safe area and layout margins — per edge
 
-111461 (PROSE): "Safe areas and layout margins are often asymmetric on iPhone Duo, so handle each side independently and test in Split View." Standard bars lay out **outside** the safe area and avoid the status bar and cameras automatically. With a vertical bar on one edge and Split View on the other, `left != right` is the normal case.
+111461 7:12: "Keep in mind that safe areas are often asymmetric. This is especially true on iPhone Duo." And 8:55: "Align your interactive or visible foreground content to the safe area, while background content may extend past the safe area. Make sure to account for, and test, asymmetrical safe areas and layout margins." Standard bars lay out **outside** the safe area and avoid the status bar and cameras automatically. With a vertical bar on one edge and Split View on the other, `left != right` is the normal case.
 
 ```swift
 // 111461 6:52 — Align foreground content to the safe area           VERBATIM
@@ -204,7 +204,7 @@ Use these instead of hard-coded corner radii for edge-hugging cards — the two 
 
 ## Standard containers adapt for free
 
-`NavigationSplitView`, `NavigationStack`, `TabView`, `List`, `ScrollView` / `UISplitViewController`, `UINavigationController`, `UITabBarController` — "columns collapse when closed and tile or overlay when open" (111461, PROSE). Sheets, popovers, context menus, alerts reposition around reserved regions too. Prefer them over custom two-column layouts; custom → `arrangements-and-reserved-regions.md`.
+`NavigationSplitView`, `NavigationStack`, `TabView`, `List`, `ScrollView` / `UISplitViewController`, `UINavigationController`, `UITabBarController` — 111461 5:19: "When iPhone Duo is closed, columns will collapse to single-stack navigation. When open, columns will appear both tiled and as overlays." Sheets, popovers, context menus, alerts reposition around reserved regions too. Prefer them over custom two-column layouts; custom → `arrangements-and-reserved-regions.md`.
 
 Sidebar on the inner display:
 
@@ -262,10 +262,10 @@ Column count: never hard-code it (breaks at ~313 and ~626 pt). Compact width: le
 
 ## HIG summary — do / don't (designing-for-iphone-duo)
 
-Five best practices: (1) build to resize — size classes, layout margins, safe area, no fixed widths, support Split View; (2) same functionality and hierarchy on both displays, the inner display shows **additional** levels (Mail: list *or* message closed, both open); (3) functionality never depends on pose; (4) follow the system's vertical control layout — "core pattern of iPhone Duo"; (5) games playable in every pose.
+Five best practices: (1) build to resize — size classes, layout margins, safe area, no fixed widths, support Split View; (2) same functionality and hierarchy on both displays, the inner display shows **additional** levels (Mail: list *or* message closed, both open); (3) functionality never depends on pose; (4) follow the system's vertical control layout — "one of the core patterns of iPhone Duo"; (5) games playable in every pose.
 
-**Do:** standard components · even number of grid columns · controls near the content they affect · handle each safe-area edge · "move only what's necessary for visibility, favor small adjustments over rearrangement, prevent controls from disappearing or shifting dramatically" · use extra width for hierarchy (List + Detail, Editor + Inspector, Player + Queue, tabs → sidebar) — never a 300 pt form stretched to 900 pt; cap readable text width.
+**Do:** standard components · even number of grid columns · controls near the content they affect · handle each safe-area edge · "Move only what's necessary to keep elements visible and easy to tap … favor small adjustments over rearrangement" · use extra width for hierarchy (List + Detail, Editor + Inspector, Player + Queue, tabs → sidebar) — never a 300 pt form stretched to 900 pt; cap readable text width.
 
-**Don't:** custom layout per pose · `UIScreen.main` · orientation for layout · `left == right` insets · content or controls spanning the fold ("a photo spread across a book's spine" — tech talk 111463 1:29; the HIG page says the folding region "divides the inner display into multiple usable regions") · text-only bar buttons · manual fixed spacers in bars · letterbox a game that could change aspect ratio.
+**Don't:** custom layout per pose · `UIScreen.main` · orientation for layout · `left == right` insets · content or controls spanning the fold (111463 1:44 shows "this photo spread across the two pages", which when folded "no longer reads as one continuous image"; the HIG page says the folding region "divides the inner display into multiple usable regions") · text-only bar buttons · manual fixed spacers in bars · letterbox a game that could change aspect ratio.
 
 **Not published:** any Duo-specific typography, tap-target or spacing numbers. Do not invent them.

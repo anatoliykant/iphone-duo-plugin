@@ -86,7 +86,7 @@ G 'userInterfaceIdiom|isIPad\b|== \.pad|case \.pad'
 GM 'userInterfaceIdiom|UI_USER_INTERFACE_IDIOM'
 ```
 
-"Don't infer size or capability from user interface idiom" — the inner display is regular × regular **on a `.phone` idiom**. Each hit that drives layout (not analytics) → size classes. Fix → `layout-size-classes-safe-area.md` §Size classes. Regex behavior: hits mix layout branches with analytics, feature flags and asset naming — only the layout-driving ones are findings.
+111461 2:34 — the best app layouts "avoid making assumptions about display sizes or device capabilities based on user interface idioms". The inner display is regular × regular **on a `.phone` idiom**. Each hit that drives layout (not analytics) → size classes. Fix → `layout-size-classes-safe-area.md` §Size classes. Regex behavior: hits mix layout branches with analytics, feature flags and asset naming — only the layout-driving ones are findings.
 
 ### 6 · Orientation for layout — LOW
 

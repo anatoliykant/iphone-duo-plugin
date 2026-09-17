@@ -1,10 +1,10 @@
 # Reserved regions and arrangements — laying out around the hinge and cameras
 
-Source: tech talk 111463 "Strike a pose with adaptive layouts on iPhone Duo" (every code block **VERBATIM** from its Code section) + HIG "Dynamic layouts". Everything here is **iOS 27.1 SDK**. Types named only in prose — `ReservedRegion` (SwiftUI), `UIViewReservedRegion`, `UISplitArrangement` (UIKit) — are PROSE: verify exact names in the SDK.
+Source: tech talk 111463 "Strike a pose with adaptive layouts on iPhone Duo" (every code block **VERBATIM** from its Code section) + HIG "Dynamic layouts". Everything here is **iOS 27.1 SDK**. Types named only in prose — `ReservedRegion` (SwiftUI) and `UIViewReservedRegion` (111461 8:20 / 8:27), `UISplitArrangement` and `ArrangementStyle` (111463 13:08 / 12:40) — are PROSE: spoken in Apple's official transcript, never written in a Code section, so verify the exact names in the SDK. Note the prose says "the reservedRegion method" singular while the code writes `reservedRegions(kind:)` — follow the code.
 
 ## Concepts
 
-**Reserved regions** — "hardware features that shape the available space — the hinge and the cameras on the outer and inner displays. These are called reserved regions, and you treat them like any other area your layout adapts to, such as window controls on iPadOS." Two kinds:
+**Reserved regions** — 111463 0:36: "New hardware features also play a role in shaping the available space. These include the hinge and the two cameras across the outer and inner displays. We call these reserved regions … And treat these just like any other areas your layout already adapts to." … "such as the window controls on iPadOS." Two kinds:
 
 | Kind | What | Behavior |
 |---|---|---|
@@ -17,14 +17,14 @@ The HIG names three regions: outer front camera (always present; grows into the 
 
 **No numeric hinge width, angle thresholds or inset values are published.** Query — never hard-code.
 
-**Displacement** — "adjusting the frame of existing elements based on available space." Scope from one button to a whole container. Move elements independently when they can adapt alone, together when they work as a unit. **Continuously scrolling content (articles, feeds) should not displace.** Avoid excessive movement. Fold-sensitive content that must never straddle the division region: buttons and input controls, faces and focal image content, text that has to read uninterrupted, QR codes, drag handles, small icons — backgrounds, gradients and scrolling content may cross.
+**Displacement** — 111463 2:39: it "adjusts the frame of the existing elements based on the available space". Scope from one button to a whole container. Move elements independently when they can adapt alone, together when they work as a unit. **Continuously scrolling content (articles, feeds) should not displace.** Avoid excessive movement. Fold-sensitive content that must never straddle the division region: buttons and input controls, faces and focal image content, text that has to read uninterrupted, QR codes, drag handles, small icons — backgrounds, gradients and scrolling content may cross.
 
 Where content moves (HIG / 111463 4:00):
 - folded like a **book** (hinge vertical) → alerts and single controls move to the **trailing** side;
 - propped on a **table** (hinge horizontal) → **top** region for content viewed at a distance, **bottom** for interactive controls;
 - several regions viable → keep it contextual (near related content).
 
-The system already repositions **action sheets, alerts, menus, popovers** around reserved regions, splits `UISplitViewController` / `NavigationSplitView` columns evenly, and — 111466 — "nudges interactive elements away from the center when iPhone Duo is partially folded" (fold avoidance). `NavigationStack`, `NavigationSplitView`, `TabView`, `List`, `ScrollView` "adapt to the fold for free." Custom code is only for what these do not cover.
+The system already repositions **action sheets, alerts, menus, popovers** around reserved regions, splits `UISplitViewController` / `NavigationSplitView` columns evenly, and — 111466 9:31 — "nudges interactive elements aside whenever iPhone Duo is partially folded" (fold avoidance). `NavigationStack`, `NavigationSplitView`, `TabView`, `List`, `ScrollView` adapt to the fold without custom code (111463 8:33: "leveraging our own components that adapt to the fold"). Custom code is only for what these do not cover.
 
 ## Query reserved regions
 
@@ -69,11 +69,11 @@ GeometryReader { proxy in
 }
 ```
 
-Frames are in the proxy's / view's coordinate space. Typical uses: keep a manually positioned control (custom bar, floating button) out of the fold or camera; choose 2 vs 3 grid columns; widen spacing around the hinge while preserving outer margins. Apple's priority: "Adopt the ReservedRegions API for your highest-priority manually laid out controls" — not for everything.
+Frames are in the proxy's / view's coordinate space. Typical uses: keep a manually positioned control (custom bar, floating button) out of the fold or camera; choose 2 vs 3 grid columns; widen spacing around the hinge while preserving outer margins. Apple's priority (111463 17:06): "identify the highest priority manually laid-out controls in your views and consider adopting the ReservedRegions API to implement your own displacement where needed" — not everything.
 
 ## Arrangements
 
-An arrangement is "a function of inputs — size classes, the view's aspect ratio, and any active division regions — to outputs, like whether to show a view and what frame it gets." iOS 27.1 exposes the system's arrangements as a container with a **primary** and a **secondary** child.
+111463 10:57: "this function of inputs to outputs is called an arrangement". The inputs are "the horizontal and vertical size class of the view, the aspect ratio of the view's width over its height, and whether there are any active division regions", outputs are "whether I should show the view at all, and if I do show the view, what's its frame?". iOS 27.1 exposes the system's arrangements as a container with a **primary** and a **secondary** child.
 
 ```swift
 // 111463 11:23 — Add an ArrangementView                              VERBATIM
@@ -151,6 +151,8 @@ Spelling: `.axes(...)`, plural. CAPTION `axis(` is wrong.
 ### Overlay arrangement
 
 Stacks the two children — primary above secondary — and moves them **side by side when folded**. Read the z-index to switch between collapsed and expanded content.
+
+The HIG adds one capability with no published spelling: "You can limit which axes a split arrangement uses, and **collapse the secondary view in an overlay arrangement when you don't want it to appear**." `.axes(…)` covers the first half (VERBATIM above); the collapse modifier appears in no Code section of 111463 — **PROSE**. Grep the SDK (`testing-and-sources.md` §Verify symbols) before writing it; until it is found, leave the secondary content out of the arrangement rather than inventing a modifier name.
 
 ```swift
 // 111463 13:26 — Switch to the overlay arrangement                   VERBATIM
@@ -241,5 +243,7 @@ myModel.minimization = (primaryState?.zIndex ?? 0) > 0
 | `.arrangementViewStyle(.split)`, `.split.axes(.horizontal)`, `.overlay` | VERBATIM, 27.1 |
 | `@Environment(\.overlayArrangementZIndex)` → `Int` | VERBATIM, 27.1 |
 | `UIArrangementViewController`, `setViewController(_:for:)`, `.primary` / `.secondary`, `updateArrangement(_:)`, `state(for:)?.zIndex` | VERBATIM, 27.1 |
-| `UISplitArrangement` | PROSE |
+| `ArrangementStyle`, `.axes` as "the axes method on the split ArrangementStyle" | PROSE (111463 12:40, official transcript) |
+| `UISplitArrangement` | PROSE (111463 13:08, official transcript) |
+| collapsing the secondary view of an `.overlay` arrangement | PROSE (HIG names the capability, no spelling published — verify in the SDK) |
 | `UIViewReservedRegion` as a *method*, `.axis(` | CAPTION — wrong, never use |
