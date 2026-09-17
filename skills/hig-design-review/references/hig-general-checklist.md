@@ -14,6 +14,15 @@ curl -s "$P/typography.json" | grep -oE '"text":"[^"]{20,255}"' | grep -iE 'poin
 curl -s "$P/accessibility.json" | jq -r '.. | objects | select(.type? == "paragraph") | [.inlineContent[]? | .text? // .title? // ""] | join("")' | grep -iE 'control size|contrast' | head
 ```
 
+**Verify every quote before the report ships.** A sentence you reconstructed from memory reads exactly like one you pasted, and Figma comments attribute it to Apple. Flatten the page once, then grep each quote back out of it:
+
+```bash
+curl -s "$P/designing-for-iphone-duo.json" | jq -r '.. | objects | select(.type? == "paragraph") | [.inlineContent[]? | .text? // .title? // ""] | join("")' > /tmp/hig-duo.txt
+grep -cF "Use the reserved region APIs to keep important elements clear of the center" /tmp/hig-duo.txt   # 0 = do not quote it
+```
+
+Curly apostrophes (`don’t`, `columns’`) come straight from Apple — copy them or the grep misses. A quote that returns `0` is either a talk (cite the talk id + timecode) or an invention (drop the quotation marks and name the section).
+
 Pages verified 2026-09-14 (`http=200`): `designing-for-ios`, `layout`, `typography`, `color`, `dark-mode`, `accessibility`, `materials`, `toolbars`, `tab-bars`, `sheets`, `buttons`, `lists-and-tables`, `designing-for-iphone-duo`. **404**: `liquid-glass` (Liquid Glass is inside `materials`), `navigation-bars` (navigation bars are covered by `toolbars` → anchors `Navigation`, `Titles`). Quote the sentence, not the page: the report needs `page §anchor: "…"`.
 
 ## Areas and checks

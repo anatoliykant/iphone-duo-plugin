@@ -7,7 +7,7 @@ description: Adapt, audit, or build iOS apps (Swift, UIKit + SwiftUI) for iPhone
 
 ## Why this skill exists
 
-iPhone Duo was announced 2026-09-09 and ships 2026-10-23 on iOS 27.1 — after the model's training data. Without `references/` you will hallucinate API names (`reservedRegions`, `ArrangementView`, `onHingeChange`, `axisBehavior`, `AVCaptureDeviceDirectionCoordinator` are real; many plausible neighbors are not). **Trust the references over memory.** Every new symbol carries a status: **VERBATIM** (copied from an Apple Code section), **PROSE** (named only in Apple text), **CAPTION** (YouTube captions only — never use), **EXISTING(iOS xx)** (pre-Duo API). Research date 2026-09-10; the Xcode 27.1 beta had not shipped, so no symbol has an official availability annotation yet — anything not VERBATIM/EXISTING is "verify in SDK".
+iPhone Duo was announced 2026-09-09 and ships 2026-10-23 on iOS 27.1 — after the model's training data. Without `references/` you will hallucinate API names (`reservedRegions`, `ArrangementView`, `onHingeChange`, `axisBehavior`, `AVCaptureDeviceDirectionCoordinator` are real; many plausible neighbors are not). **Trust the references over memory.** Every new symbol carries a status: **VERBATIM** (copied from an Apple Code section), **PROSE** (spoken in Apple's official transcript but never written in a Code section), **CAPTION** (YouTube auto-captions only — never use; the official transcripts at `developer.apple.com/videos/play/tech-talks/<id>/` disagree with all of them), **EXISTING(iOS xx)** (pre-Duo API). Research date 2026-09-10; the Xcode 27.1 beta had not shipped, so no symbol has an official availability annotation yet — anything not VERBATIM/EXISTING is "verify in SDK".
 
 ## Quick facts
 
@@ -85,7 +85,7 @@ On first use after **2026-09-20**, check: developer.apple.com/iphone-duo/ (Xcode
 | `references/device-and-platform.md` | Display/size-class facts, SDK tiers, Split View, `UIRequiresFullScreen`, timeline, App Store, **unverified** list, tech-talk map |
 | `references/audit-checklist.md` | Running or interpreting the readiness audit: 23 grep categories, severities, tiered report template, Apple's 13 steps |
 | `references/layout-size-classes-safe-area.md` | Size classes, replacing `UIScreen.main`, static width caches, state continuity, scene lifecycle, windows, safe area, concentricity, sidebar + adaptive toolbox (`ViewThatFits`, `AnyLayout`, adaptive grids), per-screen checklist, fixed widths, HIG do/don't |
-| `references/bars-and-toolbars.md` | Vertical bars: opt-in, order, axis behavior, badges, edge detection, compression, overflow, priority, opt-out — all 111462 code |
+| `references/bars-and-toolbars.md` | Vertical bars: opt-in, order, which column owns a control, axis behavior, badges, edge detection, compression, overflow, priority, opt-out — all 111462 code |
 | `references/arrangements-and-reserved-regions.md` | Reserved regions, displacement, `ArrangementView` / `UIArrangementViewController`, split vs overlay, anti-patterns — all 111463 code |
 | `references/hinge-scenes-camera.md` | `onHingeChange`, multiple scenes, scene accessories, virtual front camera, direction coordinator, rotation — 111464 / 111465 code |
 | `references/testing-and-sources.md` | Toolchain gate, Device Hub, local proxies, SDK symbol verification, Xcode MCP, freshness, source URLs |

@@ -14,7 +14,7 @@ Three components:
 |---|---|---|
 | `iphone-duo` | skill | Adapting Swift apps (UIKit + SwiftUI): size classes, vertical bars, reserved regions, `ArrangementView`, hinge, multiple scenes, dual front cameras, Split View, adaptive layout, state continuity. 7 reference files + Apple's 13-step migration order. |
 | `iphone-duo-audit` | agent | Read-only readiness audit: runs a 23-category grep checklist over a codebase and returns a severity-ranked report with `file:line` and a fix pointer per finding. Never edits code. |
-| `hig-design-review` | skill | Reviews Figma or Sketch mockups against the Human Interface Guidelines *before* implementation — general iOS rules plus the Duo rules D1–D18, with live HIG citations and a Ready / Not ready verdict. |
+| `hig-design-review` | skill | Reviews Figma or Sketch mockups against the Human Interface Guidelines *before* implementation — general iOS rules plus the Duo rules D1–D27, with live HIG citations and a Ready / Not ready verdict. |
 
 ## Requirements
 
@@ -141,7 +141,7 @@ agents/iphone-duo-audit.md    read-only audit agent
 | `iphone-duo/references/hinge-scenes-camera.md` | `onHingeChange`, multiple scenes, scene accessories, virtual front camera, direction and rotation coordinators |
 | `iphone-duo/references/testing-and-sources.md` | Toolchain gate, Device Hub poses, SDK symbol verification, freshness checks, source URLs |
 | `hig-design-review/references/intake-figma-sketch.md` | Pulling frames, sizes, renders and comments out of Figma via MCP; Sketch exports; size-class mapping |
-| `hig-design-review/references/duo-design-rules.md` | The Duo design checklist D1–D18 with a source per rule |
+| `hig-design-review/references/duo-design-rules.md` | The Duo design checklist D1–D27 with a source per rule |
 | `hig-design-review/references/hig-general-checklist.md` | General iOS checks per area + how to fetch and cite the live HIG JSON pages |
 | `hig-design-review/references/report-template.md` | Report shape, severity rows, verdict block, Figma comment format |
 

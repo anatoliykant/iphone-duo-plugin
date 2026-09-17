@@ -40,8 +40,8 @@ Apple says **pose** for the physical configuration and **hinge status** for the 
 | Built against | Behavior on the inner display |
 |---|---|
 | Pre-iOS 27 SDK | runs without recompiling; uses only the space to the left of the status bar and camera |
-| iOS 27 SDK | "extends your app left of the status bar on the inner display" |
-| iOS 27.1 SDK | "reaches the screen edge and lays standard navigation and toolbar buttons out vertically" |
+| iOS 27 SDK | 111461 0:58: "Your app will extend to the left of the status bar area on the inner display." |
+| iOS 27.1 SDK | 111461 1:05: "your app extends to the edge of the screen. Standard navigation and toolbar buttons now lay out vertically under the status bar." |
 
 Vertical bars (axis / edge / compression / opt-out APIs), reserved regions, arrangements, hinge, `CameraCaptureAccessory`, dual-camera device types — **iOS 27.1 SDK**. Already in **iOS 27.0** (verified in the 27.0 SDK): `ToolbarOverflowMenu`, `visibilityPriority`, `.topBarPinnedTrailing`, `defaultTabBarPlacement`, `isTabViewSidebarAvailable`, the `.sceneAccessory` modifier. Nothing in iOS 27.0 gives vertical bars (a common third-party error). Apple never uses "compatibility mode" or "letterboxing" for apps on Duo.
 
@@ -58,7 +58,7 @@ UIScene lifecycle is **required** when building with the iOS 27 SDK (TN3187, WWD
 
 ## `UIRequiresFullScreen` — a product decision, not an auto-fix
 
-Apple (WWDC26 278 chapter title): "UIRequiresFullscreen honored on iPhone; enables discrete resizing." 111461 captions add that the app **still resizes when the device opens/closes**.
+Apple, WWDC26 278 "Modernize your UIKit app", chapter "Full-screen mode for games" at 6:00: "Due to this, UIRequiresFullscreen is honored on iPhone in resizable environments starting in iOS 27. Its behavior has also been updated and no longer opts your app fully out of resizing. Instead, it enables discrete resizing that honors your supported interface orientations." So the app **still resizes when the device opens or closes** — in discrete steps.
 
 | Key value | Effect on Duo |
 |---|---|

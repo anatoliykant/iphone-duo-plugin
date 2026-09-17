@@ -6,7 +6,7 @@ Source: tech talk 111462 "Raise the bar with iPhone Duo" (every code block below
 
 The outer display is wider and shorter than a standard iPhone; moving navigation, toolbar and tab-bar controls to the side preserves vertical space and improves reach. Position stays consistent on the inner display in landscape; **the inner display in portrait returns to horizontal bars** (the only pose with horizontal bars). Dynamic Island and status bar move to the same side and share the vertical space with Live Activities.
 
-Split View: each app puts controls along its **outer** edge (left app → left side). The bar follows the hardware/camera and therefore **does not flip in right-to-left languages**.
+Split View: each app puts controls along its **outer** edge (left app → left side). The bar follows the hardware/camera and therefore **does not flip in right-to-left languages**. The outer front camera sits in the corner **vertically aligned with the side controls** (HIG Anatomy) — the top of the vertical bar is camera territory, which is why the system, not your code, decides what goes there.
 
 ## Opt in
 
@@ -87,6 +87,12 @@ navigationItem.pinnedTrailingGroup
 ```
 
 `pinnedTrailingGroup` — EXISTING(iOS 16, verified). `.topBarPinnedTrailing` — `@available(iOS 27.0)` in the 27.0 SDK: VERBATIM and already shipping in iOS 27.0.
+
+## Not everything belongs on the bar
+
+HIG Vertical controls, "Locate controls near the content they affect": "When controls belong to a content area other than the one along the trailing edge, keep them with that area rather than moving them to the side. Proximity makes the relationship between controls and content clear." Mail's list controls stay above the leading pane; moving them to the vertical bar would read as acting on the open message.
+
+So on a two-column screen only the **detail** column's actions become `toolbar` / `navigationItem` content (matching "only the detail column participates" above). Actions that belong to the sidebar or list go into that column's own navigation bar (`NavigationSplitView` gives each column its own `.toolbar`; UIKit: the column's own `UINavigationController`), not into the shared vertical stack.
 
 ## Prepare toolbar content
 
@@ -265,7 +271,7 @@ Types: `ToolbarItemVisibilityPriority` (SwiftUI, `@available(iOS 27.0)`) and `UI
 
 ## Opt out — and when
 
-Single-page, bottom-heavy immersive apps (Calculator) and sheets with only a close button. Not "because our custom bar looks better" — HIG: don't override default bar placement, it is the "core pattern of iPhone Duo".
+Single-page, bottom-heavy immersive apps (Calculator) and sheets with only a close button. Not "because our custom bar looks better" — HIG: "In general, don't override the default bar placement" — it is "one of the core patterns of iPhone Duo".
 
 ```swift
 // 111462 14:47 — Disable the vertical bar                            VERBATIM
@@ -295,6 +301,7 @@ class MyViewController: UIViewController {
 6. Own overflow moved into `ToolbarOverflowMenu` / `additionalOverflowItems`; priorities set for Compose-like and badged items.
 7. Compression preference chosen (toolbar items vs tab bar).
 8. Opt-out only for Calculator-like screens or one-button sheets.
+9. Controls that act on another column stay with that column, not on the shared vertical bar (§Not everything belongs on the bar).
 
 ## Symbol status table
 
