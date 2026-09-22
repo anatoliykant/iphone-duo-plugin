@@ -1,0 +1,50 @@
+name: Version consistency
+
+# Both SKILL.md files answer `-v` from a literal in their body, because the host strips YAML
+# frontmatter before a skill is shown and `npx skills add` copies `skills/` without plugin.json.
+# This job is what stops that literal from drifting away from the real plugin version.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  versions-agree:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: plugin.json, both skills and the tag all say the same version
+        run: |
+          set -euo pipefail
+          plugin=$(python3 -c 'import json;print(json.load(open(".claude-plugin/plugin.json"))["version"])')
+          echo "plugin.json: $plugin"
+          fail=0
+          for f in skills/*/SKILL.md; do
+            v=$(sed -n 's/.*skill-version: \([0-9][0-9.]*\).*/\1/p' "$f" | head -1)
+            if [ -z "$v" ]; then
+              echo "::error file=$f::no 'skill-version:' marker — the -v flag would print a stale number"
+              fail=1
+            elif [ "$v" != "$plugin" ]; then
+              echo "::error file=$f::skill-version $v != plugin.json $plugin"
+              fail=1
+            else
+              echo "$f: $v"
+            fi
+            grep -qF "\`$(basename "$(dirname "$f")") $plugin\`" "$f" || {
+              echo "::error file=$f::the -v answer line does not carry $plugin"
+              fail=1
+            }
+          done
+          if [ "${GITHUB_REF_TYPE:-}" = tag ]; then
+            tag="${GITHUB_REF_NAME#v}"
+            [ "$tag" = "$plugin" ] || { echo "::error::tag v$tag != plugin.json $plugin"; fail=1; }
+            grep -q "^## \[$plugin\] — " CHANGELOG.md || { echo "::error file=CHANGELOG.md::no '## [$plugin]' entry"; fail=1; }
+          fi
+          exit $fail
