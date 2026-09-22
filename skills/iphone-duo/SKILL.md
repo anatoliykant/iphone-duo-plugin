@@ -7,7 +7,9 @@ description: Adapt, audit, or build iOS apps (Swift, UIKit + SwiftUI) for iPhone
 
 ## Why this skill exists
 
-iPhone Duo was announced 2026-09-09 and ships 2026-10-23 on iOS 27.1 — after the model's training data. Without `references/` you will hallucinate API names (`reservedRegions`, `ArrangementView`, `onHingeChange`, `axisBehavior`, `AVCaptureDeviceDirectionCoordinator` are real; many plausible neighbors are not). **Trust the references over memory.** Every new symbol carries a status: **VERBATIM** (copied from an Apple Code section), **PROSE** (spoken in Apple's official transcript but never written in a Code section), **CAPTION** (YouTube auto-captions only — never use; the official transcripts at `developer.apple.com/videos/play/tech-talks/<id>/` disagree with all of them), **EXISTING(iOS xx)** (pre-Duo API). Research date 2026-09-10; the Xcode 27.1 beta had not shipped, so no symbol has an official availability annotation yet — anything not VERBATIM/EXISTING is "verify in SDK".
+iPhone Duo was announced 2026-09-09 and ships 2026-10-23 on iOS 27.1 — after the model's training data. Without `references/` you will hallucinate API names (`reservedRegions`, `ArrangementView`, `onHingeChange`, `axisBehavior`, `AVCaptureDeviceDirectionCoordinator` are real; many plausible neighbors are not). **Trust the references over memory.** Every new symbol carries a status: **VERBATIM** (copied from an Apple Code section or developer article), **PROSE** (named in Apple's text but never written as code), **CAPTION** (YouTube auto-captions only — never use; Apple's own transcripts disagree with all of them), **EXISTING(iOS xx)** (pre-Duo API), **SDK(27.1 β1)** (found in the shipping iOS 27.1 SDK with an availability annotation).
+
+Research date 2026-09-10; **SDK-verified 2026-09-21** against the iOS 27.1 SDK in Xcode 27.1 beta 1. Every Duo symbol in the references now carries a real annotation — the earlier "no availability annotation exists yet" caveat is gone. One capability the HIG names is still missing from the SDK (collapsing an overlay arrangement's secondary view); the references say so where it matters.
 
 ## Quick facts
 
@@ -35,7 +37,7 @@ The goal in one sentence: make the app excellent at every size first, then use D
 9. Navigation containers go **outside** `ArrangementView`; `ArrangementView` never goes inside `List` / `ScrollView`.
 10. **Every window is `UIWindow(windowScene:)`**; present from the owning view's scene, not `UIApplication.shared.windows.first`. Handle scene-request errors (the outer display refuses new windows).
 11. **`UIRequiresFullScreen` is a product decision**, not an auto-fix: `true` = discrete resizing, no Split View; absent = continuous resizing + Split View. Never add it "for Duo"; never delete it silently.
-12. **Toolchain gate before any new API**: `xcodebuild -version`, `xcrun --sdk iphoneos --show-sdk-version`. SDK < 27.1 → do only the resizability work, leave `// TODO:` for 27.1 symbols, list them under "Pending iOS 27.1 SDK".
+12. **Toolchain gate first, and by capability — never by version number.** Before any other step, run the gate in `references/testing-and-sources.md` §Toolchain gate: it probes each installed Xcode's iOS SDK for `UIHingeInteraction.h` and `UIViewReservedRegion.h`. **Xcode 27.2 beta shipped two days before 27.1 beta and carries no Duo APIs**, so `>= 27.1` is the wrong test. Report the result as a **warning before anything else**, including when the Duo SDK is installed but not the active toolchain — then work through `DEVELOPER_DIR=…` (no admin) rather than `sudo xcode-select`. No Duo SDK anywhere → resizability work only, `// TODO:` for 27.1 symbols, listed under "Pending iOS 27.1 SDK".
 13. **A layout transition is not a state transition.** One view hierarchy; state hoisted above the size-class branch; navigation depth, scroll, selection, editor contents and playback survive fold / Split View resizes (`references/layout-size-classes-safe-area.md` §State survives the fold).
 
 ## Decision tree
@@ -56,7 +58,7 @@ Do not run the grep audit inline in the main context — that is what the agent 
 
 ## Migration order (Apple, 13 steps — full text in `references/audit-checklist.md`)
 
-1. Rebuild with the iOS 27.1 SDK. 2. Remove `UIScreen.main`. 3. Orientation → size classes. 4. Idiom → size classes. 5. UIScene lifecycle. 6. Safe area / margins per edge, test in Split View. 7. Remove fixed widths and breakpoints. 8. Audit bars (container bars, order, `axisBehavior`, badges, priorities, overflow). 9. Audit centered layouts (containers → `ArrangementView` → `reservedRegions`). 10. Split View + multiple scenes (scene-request errors). 11. Camera (virtual front camera vs direction coordinator; rotation coordinator + disable compensation). 12. `UIRequiresFullScreen` decision. 13. Run Xcode 27.1's App Resizability skill.
+1. Rebuild with the iOS 27.1 SDK. 2. Remove `UIScreen.main`. 3. Orientation → size classes. 4. Idiom → size classes. 5. UIScene lifecycle. 6. Safe area / margins per edge, test in Split View. 7. Remove fixed widths and breakpoints. 8. Audit bars (container bars, order, `axisBehavior`, badges, priorities, overflow). 9. Audit centered layouts (containers → `ArrangementView` → `reservedRegions`). 10. Split View + multiple scenes (scene-request errors). 11. Camera (virtual front camera vs direction coordinator; rotation coordinator + disable compensation). 12. `UIRequiresFullScreen` decision. 13. Run Xcode 27.1's **App Resizability** skill (`xcrun agent skills export` to use it outside Xcode).
 
 Mnemonic: Resizability → Size classes → Standard containers → Safe areas → Reserved regions → Arrangements → Hinge (effects only).
 
@@ -64,19 +66,22 @@ Classify every change by tier and finish Tier 1 before proposing Tier 2/3: **Tie
 
 ## Writing code against new APIs
 
-- Copy names **exactly** as they appear in the references, with their status. For PROSE / "verify" symbols run the SDK grep in `references/testing-and-sources.md` §Verify symbols first; if the SDK is < 27.1, do not write the symbol — leave `// TODO:` and report it under "Pending iOS 27.1 SDK".
+- Copy names **exactly** as they appear in the references, with their status. Symbols tagged **SDK(27.1 β1)** are confirmed; for anything still PROSE-only, run the grep in `references/testing-and-sources.md` §Verify symbols first. If the installed SDK is < 27.1, do not write a 27.1 symbol at all — leave `// TODO:` and report it under "Pending iOS 27.1 SDK".
 - Never use CAPTION-only spellings: `UITraitToolbarVerticalEdge`, `toolbarCompressionBehavior`, `toolbarOverflowMenu`, `AVCaptureDeviceCoordinator`, `.axis(` (correct: `.axes(`), `UIWindowSceneActivation` (correct: `UIWindowScene.ActivationAction`).
-- Gate with `if #available(iOS 27.1, *)` when the deployment target is lower. Pieces that already exist need lower gates: `ToolbarOverflowMenu`, `visibilityPriority`, `.topBarPinnedTrailing`, `defaultTabBarPlacement`, `isTabViewSidebarAvailable`, `.sceneAccessory` (iOS 27.0); `additionalOverflowItems`, `pinnedTrailingGroup` (iOS 16); `UIWindowScene.ActivationAction` (iOS 15); `isCameraSensorOrientationCompensationEnabled`, `dynamicAspectRatio`, badges, concentricity (iOS 26).
+- Gate with `if #available(iOS 27.1, *)` when the deployment target is lower. Pieces that already exist need lower gates: `ToolbarOverflowMenu`, `visibilityPriority`, `.topBarPinnedTrailing`, `defaultTabBarPlacement`, `isTabViewSidebarAvailable`, `.sceneAccessory`, `presentationPlacement(_:)` / `UISheetPresentationController.preferredPlacement` (iOS 27.0); `additionalOverflowItems`, `pinnedTrailingGroup` (iOS 16); `UIWindowScene.ActivationAction` (iOS 15); `isCameraSensorOrientationCompensationEnabled`, `dynamicAspectRatio`, badges, concentricity, `backgroundExtensionEffect()` / `UIBackgroundExtensionView` (iOS 26).
+- The Duo APIs are not Duo-only. An `ArrangementView` renders two columns wherever there is room and one where there is not (lab 286 56:21), and bar compression / overflow priorities apply to any crowded bar. Write them for the whole lineup, not behind a device check — there is no Duo idiom, it reports `.phone` (lab 286 52:58: "It is a phone … it responds to a phone idiom").
 - SwiftUI `defaultTabBarPlacement(.sidebar)` is iOS 27.0 (verified); on iOS 18–26 use `defaultAdaptableTabBarPlacement(.sidebar)`.
 - Fixes follow the host project's own conventions (its `CLAUDE.md` / style rules) and introduce no new `UIScreen.main`, force unwraps or `fatalError`. Remember that SPM packages do not see the app target's compile-time flags — `#available` works everywhere, `#if` flags may not.
 
 ## Verifying
 
-Before Xcode 27.1: run the toolchain gate; build for an iPad simulator on iOS 27.0 (regular × regular) and an iPhone on 27.0 (compact — plus the TN3187 launch check with the 27.0 SDK); width-parameterized render tests at 466 / 626 / 313 pt (derived); confirm no code reads `UIScreen.main`. With Xcode 27.1: Device Hub poses (closed portrait/landscape, open flat, book, table, tent), Split View via home-indicator drag, PiP stacking, scene accessory on/off. One screenshot is not verification — cover several geometries and a mid-session fold. Details: `references/testing-and-sources.md`.
+With Xcode 27.1 (beta 1 or later): Device Hub poses — closed portrait/landscape, open flat, book, table, tent — plus **the transitions between them**, Split View via home-indicator drag, PiP stacking, and reserved regions. Camera apps launch in the simulator but find no capture device, so scene accessories need hardware. Without 27.1: iPhone Mirroring resized to a Duo-like ratio (keeps the phone idiom — Apple's own first recommendation), an iPad with window resizing, width-parameterized render tests at 466 / 626 / 313 pt (derived), and the TN3187 launch check with the 27.0 SDK. One screenshot is not verification — cover several geometries and a mid-session fold. Details: `references/testing-and-sources.md`.
 
 ## Freshness
 
-On first use after **2026-09-20**, check: developer.apple.com/iphone-duo/ (Xcode 27.1 beta out?), `documentation/UIKit/preparing-your-app-for-iphone-duo` (was 404), `documentation/updates/{swiftui,uikit}`, Xcode 27.1 release notes; then run the SDK symbol grep and update status tags in `references/`. Record the Duo `simctl` device-type id once it exists.
+Closed 2026-09-21: the Xcode 27.1 beta shipped, the Duo simulator exists (`com.apple.CoreSimulator.SimDeviceType.iPhone-Duo`), the developer article was published under `documentation/technologyoverviews/preparing-your-app-for-iphone-duo` (the `UIKit/…` path is still 404), and `documentation/updates/{swiftui,uikit,avkit}` gained their September 2026 sections.
+
+Still open — check on first use after **2026-10-23** (ship date): an iOS 27.1 RC drops "beta" from every availability annotation (re-run the SDK grep and retag); a non-beta Xcode 27.1; edits to the HIG page or the developer article; whatever comes out of Apple's 2026-09-23 forum Q&As and the announced iPhone Duo Workshops. Details and machine-checkable signals: `references/testing-and-sources.md` §Freshness.
 
 ## References
 

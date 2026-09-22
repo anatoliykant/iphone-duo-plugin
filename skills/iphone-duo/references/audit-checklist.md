@@ -27,7 +27,7 @@ xcodebuild -version | head -1; xcode-select -p; xcrun --sdk iphoneos --show-sdk-
 ls /Applications | grep -i xcode
 ```
 
-SDK < 27.1 → every new-API recommendation (reserved regions, `ArrangementView`, hinge, vertical-bar API, dual cameras, scene accessories) goes into the report's **Pending iOS 27.1 SDK** section, not into fixes. The safe part (resizability, `UIScreen.main`, orientation/idiom, safe area, standard containers, scene lifecycle) is actionable on any SDK.
+**Run the toolchain gate first** (`testing-and-sources.md` §Toolchain gate) and report its result as a warning at the top. It probes the SDK for `UIHingeInteraction.h` / `UIViewReservedRegion.h` rather than comparing versions — Xcode 27.2 beta shipped two days before 27.1 beta and has no Duo APIs, so a numeric test is wrong. No Duo SDK → every new-API recommendation (reserved regions, `ArrangementView`, hinge, vertical-bar API, dual cameras, scene accessories) goes into the report's **Pending iOS 27.1 SDK** section, not into fixes; the safe part (resizability, `UIScreen.main`, orientation/idiom, safe area, standard containers, scene lifecycle) is actionable on any SDK. Duo SDK present → drop the Pending section. Present but not active → name the Xcode and hand over `DEVELOPER_DIR=…`.
 
 ## Severity
 
@@ -331,6 +331,6 @@ G 'UIDevice\.current\.' | grep -oE 'UIDevice\.current\.\w+' | sort | uniq -c
 10. Split View + multiple scenes: handle scene-request errors; new windows are inner-display only.
 11. Camera: virtual front camera vs direction coordinator; rotation coordinator then disable sensor orientation compensation; preview gravity/aspect.
 12. `UIRequiresFullScreen`: don't add it "for Duo"; keep only as a games escape hatch — product decision.
-13. Run Xcode 27.1's **App Resizability** agent skill (ex-modernization skill; export with `xcrun agent skills export`).
+13. Run Xcode 27.1's **App Resizability** agent skill (the ex-modernization skill, present only from 27.1; export it for other tools with `xcrun agent skills export --output-dir <path>`).
 
 Shorter mnemonic (external review, consistent with Apple): Resizability → Size classes → Standard containers → Safe areas → Reserved regions → Arrangements → Hinge (effects only).

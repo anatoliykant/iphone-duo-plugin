@@ -14,7 +14,7 @@ Three components:
 |---|---|---|
 | `iphone-duo` | skill | Adapting Swift apps (UIKit + SwiftUI): size classes, vertical bars, reserved regions, `ArrangementView`, hinge, multiple scenes, dual front cameras, Split View, adaptive layout, state continuity. 7 reference files + Apple's 13-step migration order. |
 | `iphone-duo-audit` | agent | Read-only readiness audit: runs a 23-category grep checklist over a codebase and returns a severity-ranked report with `file:line` and a fix pointer per finding. Never edits code. |
-| `hig-design-review` | skill | Reviews Figma or Sketch mockups against the Human Interface Guidelines *before* implementation — general iOS rules plus the Duo rules D1–D27, with live HIG citations and a Ready / Not ready verdict. |
+| `hig-design-review` | skill | Reviews Figma or Sketch mockups against the Human Interface Guidelines *before* implementation — general iOS rules plus the Duo rules D1–D29, with live HIG citations and a Ready / Not ready verdict. |
 
 ## Requirements
 
@@ -22,7 +22,9 @@ Three components:
   Skills hosts — see Install option 3).
 - **macOS with Xcode Command Line Tools** for the toolchain gate (`xcodebuild -version`,
   `xcrun --sdk iphoneos --show-sdk-version`). The grep audit itself runs anywhere; the toolchain gate
-  is what decides whether iOS 27.1 APIs may be written yet.
+  is what decides whether iOS 27.1 APIs may be written yet. **Xcode 27.1** (beta since 2026-09-18) is
+  what ships the iOS 27.1 SDK, the iPhone Duo simulator and Apple's App Resizability agent skill;
+  without it the skills do the resizability work and defer the Duo-only APIs.
 - **`jq`** — reading Figma JSON and SDK dumps without loading them into context.
 - **`python3`** — a few reference snippets use it for plist and geometry math.
 - **Network access** — the design review fetches HIG pages live (their JSON twins) rather than
@@ -141,34 +143,38 @@ agents/iphone-duo-audit.md    read-only audit agent
 | `iphone-duo/references/hinge-scenes-camera.md` | `onHingeChange`, multiple scenes, scene accessories, virtual front camera, direction and rotation coordinators |
 | `iphone-duo/references/testing-and-sources.md` | Toolchain gate, Device Hub poses, SDK symbol verification, freshness checks, source URLs |
 | `hig-design-review/references/intake-figma-sketch.md` | Pulling frames, sizes, renders and comments out of Figma via MCP; Sketch exports; size-class mapping |
-| `hig-design-review/references/duo-design-rules.md` | The Duo design checklist D1–D27 with a source per rule |
+| `hig-design-review/references/duo-design-rules.md` | The Duo design checklist D1–D29 with a source per rule |
 | `hig-design-review/references/hig-general-checklist.md` | General iOS checks per area + how to fetch and cite the live HIG JSON pages |
 | `hig-design-review/references/report-template.md` | Report shape, severity rows, verdict block, Figma comment format |
 
 ## Status and freshness
 
-Every new symbol in the references carries a provenance tag, because Apple has not shipped an SDK
-with these APIs yet:
+Every new symbol in the references carries a provenance tag — where the name came from, and whether
+it has been confirmed against a real SDK:
 
 | Tag | Meaning |
 |---|---|
-| **VERBATIM** | Copied from an Apple Code section of a tech talk or session — spell it exactly like this |
-| **PROSE** | Named only in Apple's spoken or written text, never shown as code — verify against the SDK before writing it |
+| **VERBATIM** | Copied from an Apple Code section of a tech talk, or from a developer article — spell it exactly like this |
+| **PROSE** | Named in Apple's text but never written as code — the references say so where one is still unconfirmed |
 | **CAPTION** | Seen only in auto-generated captions — never use; the references list the known mis-spellings |
 | **EXISTING(iOS xx)** | A pre-Duo API that already ships — gate it at its own availability, not at 27.1 |
+| **SDK(27.1 β1)** | Found in the shipping iOS 27.1 SDK with an availability annotation |
 
-Research date **2026-09-10**; statuses re-checked against the **iOS 27.0 SDK (Xcode 27.0 RC)** on
-**2026-09-14**. The Xcode 27.1 beta had not shipped, so no iOS 27.1 symbol has an official
-availability annotation yet — the skill refuses to write those symbols until the toolchain gate
-passes and leaves `// TODO:` plus a "Pending iOS 27.1 SDK" section instead.
+Research date **2026-09-10**; **SDK-verified 2026-09-21** against the iOS 27.1 SDK in **Xcode 27.1
+beta 1** (27A9269). Every Duo symbol in the references now carries a real annotation. One capability
+the HIG describes — collapsing an overlay arrangement's secondary view — has no API in that SDK, and
+the references say so instead of guessing a name.
 
-Re-check after the Xcode 27.1 beta lands: run the SDK symbol grep in
-`skills/iphone-duo/references/testing-and-sources.md` §Verify symbols, then promote PROSE symbols to
-VERBATIM or correct them; confirm the reserved-region and arrangement API shapes; record the Duo
-`simctl` device-type id. Machine-checkable signals that the world moved on:
-`developer.apple.com/iphone-duo/` (Xcode 27.1 beta), the `preparing-your-app-for-iphone-duo`
-documentation page (was 404), `documentation/updates/{swiftui,uikit}`, and the change log of the
-"Designing for iPhone Duo" HIG page (ended 2026-09-09 at the time of writing).
+Also folded in on that date: Apple's developer article
+"[Preparing your app for iPhone Duo](https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo)",
+the camera articles for AVKit and AVFoundation, the September 2026 `documentation/updates` sections,
+the Xcode 27.1 beta release notes, and both iPhone Duo Group Labs (Meet with Apple 285 and 286).
+Labs are transcribed from Apple's own captions and are cited for guidance, never for API spellings.
+
+Re-check after **2026-10-23** (ship date), or sooner if an iOS 27.1 RC appears: the availability
+annotations still read `iOS 27.1 beta`, so re-run the SDK symbol grep in
+`skills/iphone-duo/references/testing-and-sources.md` §Verify symbols and retag. That file's
+§Freshness lists the machine-checkable signals.
 
 Nothing in this repository talks to a network service on its own, stores credentials, or writes
 outside the directory you point it at. The audit agent is read-only by construction.

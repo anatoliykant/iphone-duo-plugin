@@ -18,10 +18,12 @@ curl -s "$P/accessibility.json" | jq -r '.. | objects | select(.type? == "paragr
 
 ```bash
 curl -s "$P/designing-for-iphone-duo.json" | jq -r '.. | objects | select(.type? == "paragraph") | [.inlineContent[]? | .text? // .title? // ""] | join("")' > /tmp/hig-duo.txt
-grep -cF "Use the reserved region APIs to keep important elements clear of the center" /tmp/hig-duo.txt   # 0 = do not quote it
+grep -cF 'Use the ReservedRegion API to keep important elements clear of the center' /tmp/hig-duo.txt   # 0 = do not quote it
 ```
 
-Curly apostrophes (`don’t`, `columns’`) come straight from Apple — copy them or the grep misses. A quote that returns `0` is either a talk (cite the talk id + timecode) or an invention (drop the quotation marks and name the section).
+Curly apostrophes (`don’t`, `columns’`) come straight from Apple — copy them or the grep misses. Single-quote the pattern: a name Apple styles as code (`ReservedRegion`) has no literal backticks on the page, and backticks inside a double-quoted shell string run a command. A quote that returns `0` is either a talk (cite the talk id + timecode) or an invention (drop the quotation marks and name the section).
+
+**Apple edits these pages without touching their change log.** The Duo page's log still reads "September 9, 2026 — New page", yet between 2026-09-16 and 2026-09-21 the fold sentence changed from "the reserved region APIs" to "the `ReservedRegion` API" and a Developer documentation block appeared. Hash the JSON; do not trust the log.
 
 Pages verified 2026-09-14 (`http=200`): `designing-for-ios`, `layout`, `typography`, `color`, `dark-mode`, `accessibility`, `materials`, `toolbars`, `tab-bars`, `sheets`, `buttons`, `lists-and-tables`, `designing-for-iphone-duo`. **404**: `liquid-glass` (Liquid Glass is inside `materials`), `navigation-bars` (navigation bars are covered by `toolbars` → anchors `Navigation`, `Titles`). Quote the sentence, not the page: the report needs `page §anchor: "…"`.
 

@@ -29,7 +29,7 @@ A Duo review needs at least one frame per target class: compact (outer display) 
 1. **Intake** — collect frames, sizes, structure, renders and existing comments (`references/intake-figma-sketch.md`). Map every frame to a size class (compact / regular / Split View half) by its bounding box. Before judging D1, scan **every page** of the file for Duo-sized frames (≈ 466 / 678 / 626 / 890 pt) or pages named Duo / fold / hinge — Duo mockups often live on their own page, outside the node ids you were given.
 2. **Inventory per screen** — navigation pattern (tab bar, nav bar, sidebar, modal), bars and their items (title + symbol?), lists / grids (column count), text blocks (longest line), interactive controls near the frame's horizontal centre, custom chrome (hand-drawn bars, floating panels), safe-area treatment (content under the camera / home indicator?).
 3. **General HIG pass** — walk `references/hig-general-checklist.md`; fetch the relevant HIG page JSON for each area you flag and cite the sentence.
-4. **Duo pass** — walk `references/duo-design-rules.md` D1–D27 for every screen that will ship on Duo.
+4. **Duo pass** — walk `references/duo-design-rules.md` D1–D29 for every screen that will ship on Duo.
 5. **Report** — `references/report-template.md`; one row per finding, severity, node id / artboard, rule id, citation, concrete fix.
 6. **Verdict** — Ready for implementation / Ready with notes / Not ready (rules in §Verdict).
 7. **Figma comments (optional)** — only after the user has seen the report and confirmed, or when the request explicitly says "post comments": one comment per BLOCKER / MUST-FIX finding on its node, prefixed `[HIG review]`, text = rule id + one sentence + citation. Never post NOTE-level items. Never edit the file.
@@ -62,14 +62,14 @@ The verdict is per screen and for the set. Always add a "Not checkable from a mo
 
 ## Freshness
 
-The Duo HIG page's change log currently ends at 2026-09-09; check it on every run (JSON: `…/designing-for-iphone-duo.json`, heading "Change log"). If it moved, re-read the page before trusting D1–D18 and update `references/duo-design-rules.md`. General pages are fetched live every time.
+The Duo HIG page's change log still ends at 2026-09-09 (re-checked 2026-09-21); check it on every run (JSON: `…/designing-for-iphone-duo.json`, heading "Change log"). If it moved, re-read the page before trusting D1–D29 and update `references/duo-design-rules.md`. The page has since grown a **Developer documentation** block linking "Preparing your app for iPhone Duo" and both `ReservedRegion` pages — that article now backs D18, D23 and D25, so hash it too. General pages are fetched live every time.
 
 ## References
 
 | File | Read when |
 |---|---|
 | `references/intake-figma-sketch.md` | Pulling frames, sizes, renders, comments from Figma via MCP; Sketch exports; size-class mapping |
-| `references/duo-design-rules.md` | The iPhone Duo checklist D1–D27 with sources (HIG Duo page, tech talks 111466 / 111462 / 111463) |
+| `references/duo-design-rules.md` | The iPhone Duo checklist D1–D29 with sources (HIG Duo page, the "Preparing your app for iPhone Duo" article, tech talks 111466 / 111462 / 111463, Group Labs 285 / 286) |
 | `references/hig-general-checklist.md` | General iOS checks per area + how to fetch and cite the live HIG JSON pages |
 | `references/report-template.md` | Report shape, severity rows, verdict block, Figma comment format |
 
