@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Each release is a `version` bump in `.claude-plugin/plugin.json` plus a matching git tag; Claude Code
 pins installed copies to that version, so `claude plugin update` is what moves a user forward.
 
+## [1.1.0] — 2026-09-22
+
+### Added
+
+- **`-h` / `--help` and `-v` / `--version` on both skills.** `--help` prints a short card — what the
+  skill is for, what to hand it, what comes back, what it needs — and stops, without reading a repo
+  or calling Figma. `--version` reads the number out of `.claude-plugin/plugin.json` next to the
+  skill body, because that is the only number a skill can read at runtime — the host strips the YAML
+  frontmatter before showing a skill, and `npx skills add` copies `skills/` without
+  `.claude-plugin/plugin.json`.
+- **A CI guard for that literal** (`.github/workflows/version-consistency.yml`): it fails when a
+  skill's `skill-version` marker or its `-v` answer line disagrees with `.claude-plugin/plugin.json`,
+  and on a tag push it also checks the tag and the CHANGELOG entry. The version now lives in three
+  files on purpose, and drifting is a build failure rather than a wrong answer to `-v`.
+
 ## [1.0.0] — 2026-09-21
 
 First release verified against a real SDK. Xcode 27.1 beta 1 (27A9269) shipped on 2026-09-18 with the
@@ -162,6 +177,7 @@ First public release.
   2026-09-14. The Xcode 27.1 beta had not shipped, so no iOS 27.1 symbol carries an official
   availability annotation yet — the skills say so and gate new APIs behind a toolchain check.
 
+[1.1.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v1.1.0
 [1.0.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v1.0.0
 [0.10.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v0.10.0
 [0.9.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v0.9.0

@@ -5,6 +5,40 @@ description: Review Figma or Sketch mockups against Apple's Human Interface Guid
 
 # HIG design review — Figma / Sketch mockups before implementation
 
+## Flags — answer and stop
+
+The host appends the invocation's arguments as `ARGUMENTS: …`. If they contain one of these flags,
+print **only** the corresponding block and do nothing else — no Figma calls, no HIG fetches. A Figma
+URL or anything else in the arguments is a normal request; ignore this section.
+
+**`-v` / `--version`** — answer in one line, from the literal below:
+
+> `hig-design-review 1.1.0` · Duo rules D1–D29 · HIG re-checked 2026-09-21 (page change log 2026-09-09)
+
+<!-- skill-version: 1.1.0 — kept equal to .claude-plugin/plugin.json by .github/workflows/version-consistency.yml -->
+
+The number lives here, in the body, because that is the only place the skill can read at runtime: the
+host strips the YAML frontmatter before the skill is shown, and `npx skills add` copies `skills/`
+without `.claude-plugin/plugin.json`. A CI check fails the build if this literal and `plugin.json`
+disagree. If a `.claude-plugin/plugin.json` happens to sit two levels above the skill's base
+directory, read it and prefer it — a mismatch there means a broken release.
+
+**`-h` / `--help`** — print this, verbatim:
+
+> **hig-design-review** — check a mockup against Apple's Human Interface Guidelines *before* anyone writes UI code.
+>
+> **Give it** a Figma link (`…/design/<fileKey>/<name>?node-id=12-345`), a whole file key, or Sketch/PNG/PDF exports. Exports mean a visual-only review: no measured type sizes, tap targets or contrast.
+>
+> **Get back** one row per finding — screen, node id, what is wrong, the quoted HIG sentence, and which system component fixes it — plus a verdict per screen and for the set: **Ready** / **Ready with notes** / **Not ready**. Findings are BLOCKER / MUST-FIX / SHOULD / NOTE. A rule with no citable sentence is capped at SHOULD and labelled reviewer judgment.
+>
+> **Checks** general iOS (layout, safe areas, typography and Dynamic Type, colour and contrast, accessibility, navigation and bars, sheets, the iOS 26 design system) plus **D1–D29** for iPhone Duo: both displays designed, vertical bars, bar item order and icons, fold avoidance, even grid columns, camera regions, arrangements, Split View, pose transitions.
+>
+> **Draw before review** — derived @3x, label them as such: outer 466 × 678 · inner 626 × 890 portrait · inner 890 × 626 landscape (fold at x ≈ 445) · Split View half ≈ 313 × 890. At least one compact and one regular frame per screen. Apple's Figma and Sketch kits: developer.apple.com/design/resources/
+>
+> **Needs** the Figma MCP server for the Figma path (`claude mcp add figma -- npx -y mcp-figma mcp`) and network access — HIG pages are fetched live, never quoted from memory. Read-only: it comments on Figma nodes only when you ask, and never edits a design.
+>
+> Implementation questions a finding raises → `/iphone-duo:iphone-duo`. `-v` for the version.
+
 ## Why this skill exists
 
 UI work that starts from a mockup which contradicts the HIG gets rebuilt twice: once to match the mockup, once to pass review. This skill is the gate in between: it reads the mockup (Figma via MCP, Sketch via exports), checks it against Apple's guidelines — general iOS plus iPhone Duo (announced 2026-09-09, newer than the model's training data) — and returns findings with citations and a verdict. It does not judge taste or brand; it judges compliance with what Apple publishes.

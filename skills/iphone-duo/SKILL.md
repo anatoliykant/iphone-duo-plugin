@@ -5,6 +5,44 @@ description: Adapt, audit, or build iOS apps (Swift, UIKit + SwiftUI) for iPhone
 
 # iPhone Duo (iOS 27.1) — adapt Swift apps to the foldable iPhone
 
+## Flags — answer and stop
+
+The host appends the invocation's arguments as `ARGUMENTS: …`. If they contain one of these flags,
+print **only** the corresponding block and do nothing else — no repo reads, no audit, no toolchain
+gate. Anything else in the arguments is a normal request; ignore this section.
+
+**`-v` / `--version`** — answer in one line, from the literal below:
+
+> `iphone-duo 1.1.0` · references SDK-verified 2026-09-21 against iOS 27.1 (Xcode 27.1 beta 1) · design rules D1–D29
+
+<!-- skill-version: 1.1.0 — kept equal to .claude-plugin/plugin.json by .github/workflows/version-consistency.yml -->
+
+The number lives here, in the body, because that is the only place the skill can read at runtime: the
+host strips the YAML frontmatter before the skill is shown, and `npx skills add` copies `skills/`
+without `.claude-plugin/plugin.json`. A CI check fails the build if this literal and `plugin.json`
+disagree, so it cannot drift. If a `.claude-plugin/plugin.json` happens to sit two levels above the
+skill's base directory, read it and prefer it — a mismatch there means a broken release, and saying
+so is more useful than either number alone.
+
+**`-h` / `--help`** — print this, verbatim:
+
+> **iphone-duo** — adapt, audit or build iOS apps for iPhone Duo, Apple's foldable (iOS 27.1, ships 2026-10-23).
+>
+> **Ask for**
+> - *"is this app ready for iPhone Duo"* → read-only grep audit via the `iphone-duo:iphone-duo-audit` agent, severity-ranked, `file:line` per finding
+> - *"fix X for Duo"* → the reference that owns X, then the change, in Apple's 13-step order
+> - *"build this screen"* → size-class-first with standard containers
+>
+> **Knows** outer/inner size classes · vertical bars, overflow and compression · reserved regions (fold, cameras) · `ArrangementView` · hinge · multiple scenes and camera accessories · dual front cameras · Split View · Device Hub poses.
+>
+> **Refuses to guess.** Every symbol carries where it came from and whether it was found in the iOS 27.1 SDK. The first thing it runs is a toolchain gate that probes the SDK for Duo headers — **not** a version compare, because Xcode 27.2 beta predates 27.1 beta and has none of them.
+>
+> **Needs** Xcode 27.1+ for the Duo APIs; everything else (resizability, size classes, safe areas, scene lifecycle) works on any toolchain.
+>
+> **Reference files** — `device-and-platform` facts · `audit-checklist` the grep set · `layout-size-classes-safe-area` layout · `bars-and-toolbars` bars · `arrangements-and-reserved-regions` the fold · `hinge-scenes-camera` hardware · `testing-and-sources` toolchain, Device Hub, freshness.
+>
+> Mockups rather than code → `/iphone-duo:hig-design-review`. `-v` for the version.
+
 ## Why this skill exists
 
 iPhone Duo was announced 2026-09-09 and ships 2026-10-23 on iOS 27.1 — after the model's training data. Without `references/` you will hallucinate API names (`reservedRegions`, `ArrangementView`, `onHingeChange`, `axisBehavior`, `AVCaptureDeviceDirectionCoordinator` are real; many plausible neighbors are not). **Trust the references over memory.** Every new symbol carries a status: **VERBATIM** (copied from an Apple Code section or developer article), **PROSE** (named in Apple's text but never written as code), **CAPTION** (YouTube auto-captions only — never use; Apple's own transcripts disagree with all of them), **EXISTING(iOS xx)** (pre-Duo API), **SDK(27.1 β1)** (found in the shipping iOS 27.1 SDK with an availability annotation).
