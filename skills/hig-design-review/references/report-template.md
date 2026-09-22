@@ -15,7 +15,7 @@ Points are derived @3x (466 × 678 outer, 626 × 890 inner, ~313 Split View half
 ## Findings
 | # | Sev | Screen (node id / artboard) | Rule | What is wrong | Source | Fix (which system component / HIG pattern) |
 |---|---|---|---|---|---|---|
-| 1 | BLOCKER | Home — inner (12:345) | D14 | Primary CTA centred on the fold line | HIG Duo, Reserved regions: "Use the reserved region APIs to keep important elements clear of the center" | Anchor the CTA to the trailing region or the bottom bar |
+| 1 | BLOCKER | Home — inner (12:345) | D14 | Primary CTA centred on the fold line | HIG Duo, Reserved regions: "Use the `ReservedRegion` API to keep important elements clear of the center" | Anchor the CTA to the trailing region or the bottom bar |
 …
 
 ## Implementation constraints (for the developer, when "Ready with notes")
@@ -52,7 +52,7 @@ Not posted | Posted N comments on: <node ids> (prefix `[HIG review]`)
 
 ```
 [HIG review] D14 BLOCKER — primary CTA sits on the fold line of the inner display.
-Apple HIG, Designing for iPhone Duo (Reserved regions): "Use the reserved region APIs to keep important elements clear of the center if the system doesn't move them automatically." Move it to the trailing region or the bottom bar.
+Apple HIG, Designing for iPhone Duo (Reserved regions): "Use the `ReservedRegion` API to keep important elements clear of the center if the system doesn't move them automatically." Move it to the trailing region or the bottom bar.
 ```
 
 Never post NOTE items, never post twice for the same finding (check `get_comments` first), never resolve or delete others' comments.

@@ -1,6 +1,6 @@
 # Layout on iPhone Duo — size classes, geometry, safe area, windows
 
-Status tags: **VERBATIM** (Apple Code section) · **PROSE** (Apple chapter text / HIG) · **EXISTING(iOS xx)** (pre-Duo API; versions marked "verified" were read from the iOS 26.5 SDK). Anything else → verify in the iOS 27.1 SDK (`testing-and-sources.md` §Verify symbols).
+Status tags: **VERBATIM** (Apple Code section or developer article) · **PROSE** (Apple chapter text / HIG / article) · **EXISTING(iOS xx)** (pre-Duo API) · **SDK(27.1 β1)** (confirmed in the iOS 27.1 SDK, 2026-09-21). Anything else → verify (`testing-and-sources.md` §Verify symbols).
 
 Order of work (Apple, 111461): size classes → no `UIScreen.main` → standard containers → safe area per edge → fixed widths out → only then reserved regions / arrangements (`arrangements-and-reserved-regions.md`).
 
@@ -109,7 +109,9 @@ struct EditorScreen: View {
 }
 ```
 
-UIKit: never rebuild the view-controller tree in `traitCollectionDidChange` / `viewWillTransition`; let `UISplitViewController` collapse and expand, keep models outside view controllers. Must survive a mid-session resize: navigation depth, scroll offset, text-field contents, selection, playback position, unsaved work.
+UIKit: never rebuild the view-controller tree in `traitCollectionDidChange` / `viewWillTransition`; let `UISplitViewController` collapse and expand, keep models outside view controllers. Adopt **automatic trait tracking** and `registerForTraitChanges(_:handler:)` instead — the article: "Use automatic trait tracking to observe `horizontalSizeClass` and `verticalSizeClass` changes to adapt your interface to different sizes. Don't use `userInterfaceIdiom` or `UIInterfaceOrientation` for layout decisions in your UIKit app." (See "Adapting your app when traits change".) Must survive a mid-session resize: navigation depth, scroll offset, text-field contents, selection, playback position, unsaved work.
+
+Apple names this exact pattern as the thing that breaks on Duo — lab 286 19:27: "one thing that I see SwiftUI apps sometimes do is in a complex size class, they will use one container on one side of an if statement, and then they'll use a different container on the other side of an if statement … oftentimes that if statement is guarded by size class. So if you were doing that, you will see state loss. If you haven't raised everything up." It already bites on iPad; folding just makes it happen constantly.
 
 ## Windows and scenes
 
@@ -155,6 +157,8 @@ overlay.makeKeyAndVisible()
 ## Safe area and layout margins — per edge
 
 111461 7:12: "Keep in mind that safe areas are often asymmetric. This is especially true on iPhone Duo." And 8:55: "Align your interactive or visible foreground content to the safe area, while background content may extend past the safe area. Make sure to account for, and test, asymmetrical safe areas and layout margins." Standard bars lay out **outside** the safe area and avoid the status bar and cameras automatically. With a vertical bar on one edge and Split View on the other, `left != right` is the normal case.
+
+Who this catches, from lab 285 54:48: "a lot of phone apps that have been locked to portrait have only worried about top and bottom safe areas … the unsafe areas are on the side often now." And 55:27: "the content insets are also asymmetrical" — read the real values, do not take one side and double it. 55:19 on why it is easy to miss: "often you don't know that you made them … you got it working. And you discover that, oh, we made an assumption."
 
 ```swift
 // 111461 6:52 — Align foreground content to the safe area           VERBATIM
@@ -247,6 +251,21 @@ Column count: never hard-code it (breaks at ~313 and ~626 pt). Compact width: le
 - `.frame(width: 320)` / `widthAnchor.constraint(equalToConstant: 340)` clip in a ~313 pt Split View half and float in a ~626 pt inner display. Use `maxWidth:` caps, `containerRelativeFrame`, or size-class-driven columns.
 - Coefficients "tuned for 393/430 pt" in coordinate-conversion or scaling helpers are hidden device assumptions — express them relative to the actual container.
 - Games: pick portrait or landscape, fill the display as the pose changes, keep text and control sizes consistent, **prefer aspect-ratio changes over letterboxing/pillarboxing**, add artwork in padding areas if needed (HIG).
+
+## Three columns on a two-column display
+
+An iPad app with a three-column `NavigationSplitView` / `UISplitViewController` shows **two columns at a time** on the inner display, with the root column reachable as an overlay from a button in the top left; in portrait you get the detail alone and pull the sidebar in over it (lab 285 35:27–35:45). The same construction already applies to a Pro Max in landscape, so this is not a Duo special case — and the system does the work: lab 285 36:56, "if you do use those UI components … then you get some nice features, like when you go like partially open, like a book, then the split view kind of automatically resizes and takes up 50/50 of the screen."
+
+`TabView` / `UITabBarController` can also show its tabs as a sidebar when open and wide (`defaultTabBarPlacement(.sidebar)` / `sidebar.preferredPlacement`) — a different answer to the same width, see §Sidebar.
+
+## Accessibility on a bigger screen
+
+Two things the labs single out:
+
+- **Dynamic Type at the largest sizes finally has room.** Lab 285 29:15: "you're on a bigger screen. So you're going to maybe have users who really rely on dynamic type … especially like, these UIs at the largest accessibility sizes are going to look really good when they open their phone." Adapting to it — `readableContentGuide` and friends — is part of resizability, not a separate task.
+- **Reduce Transparency draws an opaque rectangle behind the vertical bar**, slightly narrower than its safe area so it does not butt against content (lab 285 30:20). Turn it on and look at the screen.
+
+VoiceOver runs on both displays at once — a first — so an app that already labels its content correctly needs nothing new (lab 285 30:02).
 
 ## Per-screen checklist (UIKit + SwiftUI)
 

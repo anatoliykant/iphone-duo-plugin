@@ -47,10 +47,18 @@ ls */Info.plist; ls *.xcodeproj/project.pbxproj; ls Package.swift */Package.swif
 find . -name '*.swift' -not -path '*/Pods/*' -not -path '*/.build/*' | wc -l
 find . \( -name '*.m' -o -name '*.h' \) -not -path '*/Pods/*' | wc -l     # >0 → run the ObjC lines of each category too
 ls -d */ | head -30                                                          # spot vendored third-party dirs — report their hits separately
-xcodebuild -version | head -1; xcode-select -p; xcrun --sdk iphoneos --show-sdk-version
+# Capability probe — NOT a version compare. Xcode 27.2 beta predates 27.1 beta and has no Duo APIs.
+duo_sdk() { local h="$1/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/UIKit.framework/Headers"
+            [ -f "$h/UIHingeInteraction.h" ] && [ -f "$h/UIViewReservedRegion.h" ]; }
+ACTIVE="${DEVELOPER_DIR:-$(xcode-select -p)}"; duo_sdk "$ACTIVE" && echo "Duo SDK: active" || echo "Duo SDK: MISSING from the active toolchain"
+{ ls -d /Applications/Xcode*.app 2>/dev/null; mdfind "kMDItemCFBundleIdentifier == 'com.apple.dt.Xcode'" 2>/dev/null; } | sort -u | while read -r a; do
+  duo_sdk "$a/Contents/Developer" && echo "  has Duo APIs: $a"; done
+xcodebuild -version | head -1; xcrun --sdk iphoneos --show-sdk-version
 ```
 
-Record the file counts (production vs `Tests/|UITests/`), vendored directories, and the SDK version. SDK < 27.1 means every new-API recommendation goes to **Pending iOS 27.1 SDK**.
+Record the file counts (production vs `Tests/|UITests/`), vendored directories, and the probe result.
+
+**Put the toolchain line at the very top of the report, as a warning when it fails.** No Duo SDK in the active toolchain means every new-API recommendation goes to **Pending iOS 27.1 SDK**; if the probe found one in another installed Xcode, say which, and give `export DEVELOPER_DIR=<that>/Contents/Developer` (no admin rights) — a beta installs beside the release, and the active toolchain is often the older one. When the active toolchain does carry the Duo APIs, drop the Pending section entirely. Full reasoning and the complete gate: the `iphone-duo` skill, `references/testing-and-sources.md` §Toolchain gate.
 
 ## Step 2 — run every category
 

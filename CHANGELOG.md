@@ -6,6 +6,82 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Each release is a `version` bump in `.claude-plugin/plugin.json` plus a matching git tag; Claude Code
 pins installed copies to that version, so `claude plugin update` is what moves a user forward.
 
+## [1.0.0] — 2026-09-21
+
+First release verified against a real SDK. Xcode 27.1 beta 1 (27A9269) shipped on 2026-09-18 with the
+iOS 27.1 SDK and the iPhone Duo simulator, and Apple published the developer article "Preparing your
+app for iPhone Duo", two camera articles, the September 2026 `documentation/updates` sections, the
+Xcode 27.1 beta release notes and two iPhone Duo Group Labs. Every Duo symbol in the references now
+carries an availability annotation read from the SDK, so the plugin no longer reasons about APIs it
+has never seen — which is what 0.x was waiting on.
+
+### Added
+
+- **`SDK(27.1 β1)` provenance tag** alongside VERBATIM / PROSE / CAPTION / EXISTING: where a name came
+  from, and whether it has been confirmed in a shipping SDK.
+- **Arrangement API that the talk never showed**: `ArrangementViewStyle` (the protocol behind the
+  transcript's "ArrangementStyle"), `makeBody(configuration:)`, `ArrangementViewStyleConfiguration`,
+  `overlayArrangementEdge(_:)`, the four `splitArrangementLayout*` sizing modifiers, the
+  `splitArrangementAxis` environment value, `UIArrangementViewState` (`zIndex`, `splitAxis`,
+  `isHidden`), `UIArrangement` / `UISplitArrangement.Dimension` / `DimensionRange`, and
+  `UIViewController.arrangementViewController`.
+- **Reserved regions beyond the frame**: `margins`, `isActive`, the opaque `ReservedRegion.ID`, and the
+  SwiftUI query's third argument `layoutDirectionBehavior:` (defaults to `.mirrors`).
+- **Hinge types**: `DeviceHinge` / `DeviceHingeContext` (SwiftUICore), `UIHinge`,
+  `UIHingeInteraction(updateHandler:)` and all four statuses — previously "verify these spellings".
+- **The UIKit path for scene accessories**, from Apple's article:
+  `UISceneAccessory.cameraCapture(sceneConfiguration:userInfo:)`, `registerSceneAccessory(_:)` →
+  `UISceneAccessoryRegistration`, the `windowCameraCaptureAccessory` role, `sceneAccessoryUserInfo`,
+  and the rule that Split View withdraws the accessory.
+- **The camera article's code**, which the talk only gestured at: the virtual front camera
+  (`isVirtualDevice`, `activePrimaryConstituent`), resolving an `AVCaptureDeviceDescriptor` on a
+  capture actor, and deciding mirroring from the direction map rather than from `position`.
+- **Sheet placement**: `presentationPlacement(_:)` / `UISheetPresentationController.preferredPlacement`
+  (iOS 27.0) decides whether an inner-display sheet gets horizontal or vertical bars.
+- **`UIView.LayoutRegion.bar(onEdge:extent:)`** — ask the system where it would have drawn its bar
+  instead of measuring, for the apps that genuinely cannot use a container bar.
+- **`backgroundExtensionEffect()` / `UIBackgroundExtensionView`** for hero art under a vertical bar.
+- **Two design rules, so the set is D1–D29**: D28 (a pose change moves elements, it does not rebuild
+  the screen — Apple names "designing for every pose" as the biggest mistake they have seen) and D29
+  (tabs stay inside a sheet when the tabs choose the sheet's content).
+- **A recipe for reading a Meet with Apple lab** — those pages carry no transcript, only HLS caption
+  segments — plus the Duo simulator identifiers, now that they exist.
+- **A toolchain gate that runs first and reports as a warning**, in the skill, the audit checklist and
+  the agent. It probes each installed Xcode's iOS SDK for `UIHingeInteraction.h` and
+  `UIViewReservedRegion.h` rather than comparing version numbers — **Xcode 27.2 beta 1 (27B5019j,
+  2026-09-16) shipped two days before 27.1 beta 1 (27A9269, 2026-09-18) and is on a different build
+  train**, so a `>= 27.1` test passes a toolchain with no Duo APIs. It also covers the common split
+  where the Duo SDK is installed but some other Xcode is active, and answers it with
+  `DEVELOPER_DIR=…`, which needs no admin rights, instead of `sudo xcode-select -s`. Enumeration
+  combines the usual folders with Spotlight, so an Xcode on another volume is found. Nothing in the
+  gate launches Xcode: versions come from `Contents/version.plist`, because `Contents/Info.plist`
+  reports `DTPlatformVersion = 27.0` even in the 27.1 beta, and running `xcodebuild` under a
+  never-opened Xcode can demand `sudo xcodebuild -license`.
+
+### Changed
+
+- `testing-and-sources.md` is rewritten around an installed 27.1: Device Hub poses **and the
+  transitions between them**, camera apps launching in Simulator without a camera, the beta's known
+  issues, and iPhone Mirroring promoted to Apple's first-choice proxy when 27.1 is absent.
+- The freshness protocol now watches for the iOS 27.1 RC dropping "beta" from the annotations, rather
+  than for the beta itself.
+- Both skills cite the developer article alongside the HIG, and the labs where an Apple engineer says
+  something the written docs do not.
+
+### Fixed
+
+- **"Inspectors do not get their own bar"** — they do, horizontally, says the article.
+- **"Apple never uses letterboxing"** — the HIG never does, but an Apple engineer walks through the
+  whole letterbox progression in lab 285. The claim is now attributed to the lab.
+- **`UIViewReservedRegion` was tagged PROSE**; it is a real ObjC class whose Swift name is
+  `UIView.ReservedRegion`, refined from `-reservedRegionsOfKind:options:` — which is also why a grep
+  for `reservedRegions` in the UIKit headers returns nothing.
+- **`CameraCaptureAccessory` was filed under AVFoundation**; it is a SwiftUI `SceneAccessoryContent`.
+- **App Resizability was described as an Xcode 27 skill**; it exists only from 27.1, and the export
+  command takes `--output-dir`.
+- The Duo `simctl` device type was listed as "not published" — it is
+  `com.apple.CoreSimulator.SimDeviceType.iPhone-Duo`.
+
 ## [0.10.0] — 2026-09-17
 
 Line-by-line re-check of both skills against the live HIG page
@@ -86,5 +162,6 @@ First public release.
   2026-09-14. The Xcode 27.1 beta had not shipped, so no iOS 27.1 symbol carries an official
   availability annotation yet — the skills say so and gate new APIs behind a toolchain check.
 
+[1.0.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v1.0.0
 [0.10.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v0.10.0
 [0.9.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v0.9.0
