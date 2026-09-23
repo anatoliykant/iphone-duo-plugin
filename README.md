@@ -18,8 +18,8 @@ Three components:
 
 ## Requirements
 
-- **Claude Code** for the plugin install (skills alone also work in Cursor, Codex and other Agent
-  Skills hosts — see Install option 3).
+- **Claude Code** for the plugin install (option 2); the skills alone also work in Claude Code,
+  Cursor, Codex and other Agent Skills hosts — see Install option 1.
 - **macOS with Xcode Command Line Tools** for the toolchain gate (`xcodebuild -version`,
   `xcrun --sdk iphoneos --show-sdk-version`). The grep audit itself runs anywhere; the toolchain gate
   is what decides whether iOS 27.1 APIs may be written yet. **Xcode 27.1** (beta since 2026-09-18) is
@@ -39,7 +39,17 @@ Three components:
 
 ## Install
 
-### 1. As a Claude Code plugin (recommended — skills + agent)
+### 1. Skills only, via the Agent Skills CLI (Claude Code, Cursor, Codex, …)
+
+```bash
+npx skills add anatoliykant/iphone-duo-plugin
+```
+
+This installs the two skills; `agents/` is ignored by that CLI. To get the audit agent as well, copy
+`agents/iphone-duo-audit.md` into `~/.claude/agents/` **or** install the plugin (option 2) — not
+both: a user-scope agent overrides the plugin one, and you end up maintaining two copies.
+
+### 2. As a Claude Code plugin (skills + agent, pinned versions)
 
 ```bash
 claude plugin marketplace add anatoliykant/iphone-duo-plugin
@@ -57,7 +67,7 @@ Installed copies are pinned to the `version` in `.claude-plugin/plugin.json`, so
 version bump plus a tag — run `claude plugin update iphone-duo@anatoliykant-plugins` to move to it.
 `CHANGELOG.md` lists what changed in each one.
 
-### 2. From the Claude community marketplace
+### 3. From the Claude community marketplace
 
 Once the submission is approved:
 
@@ -65,16 +75,6 @@ Once the submission is approved:
 /plugin marketplace add anthropics/claude-plugins-community
 /plugin install iphone-duo@claude-community
 ```
-
-### 3. Skills only, via the Agent Skills CLI (Cursor, Codex, …)
-
-```bash
-npx skills add anatoliykant/iphone-duo-plugin
-```
-
-This installs the two skills; `agents/` is ignored by that CLI. To get the audit agent as well, copy
-`agents/iphone-duo-audit.md` into `~/.claude/agents/` **or** install the plugin — not both: a
-user-scope agent overrides the plugin one, and you end up maintaining two copies.
 
 ### 4. By hand
 
