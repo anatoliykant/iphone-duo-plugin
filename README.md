@@ -1,4 +1,4 @@
-# iPhone Duo plugin for Claude Code
+# iPhone Duo plugin for Claude Code and Codex
 
 [![Agent Skills](https://skills.sh/b/anatoliykant/iphone-duo-plugin)](https://skills.sh/anatoliykant/iphone-duo-plugin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -12,14 +12,15 @@ Three components:
 
 | Component | Kind | What it does |
 |---|---|---|
-| `iphone-duo` | skill | Adapting Swift apps (UIKit + SwiftUI): size classes, vertical bars, reserved regions, `ArrangementView`, hinge, multiple scenes, dual front cameras, Split View, adaptive layout, state continuity. 7 reference files + Apple's 13-step migration order. |
-| `iphone-duo-audit` | agent | Read-only readiness audit: runs a 23-category grep checklist over a codebase and returns a severity-ranked report with `file:line` and a fix pointer per finding. Never edits code. |
+| `iphone-duo` | skill | Adapting Swift apps (UIKit + SwiftUI): size classes, vertical bars, reserved regions, `ArrangementView`, hinge, multiple scenes, dual front cameras, Split View, adaptive layout, state continuity. 8 reference files + Apple's 13-step migration order. |
+| Readiness audit | shared workflow + Claude agent | Runs a 23-category grep checklist and returns a severity-ranked report with `file:line` and a fix pointer per finding. Claude Code uses `iphone-duo-audit`; Codex and skills-only installs run the same workflow through `iphone-duo`. Never edits source code. |
 | `hig-design-review` | skill | Reviews Figma or Sketch mockups against the Human Interface Guidelines *before* implementation — general iOS rules plus the Duo rules D1–D29, with live HIG citations and a Ready / Not ready verdict. |
 
 ## Requirements
 
-- **Claude Code** for the plugin install (option 2); the skills alone also work in Claude Code,
-  Cursor, Codex and other Agent Skills hosts — see Install option 1.
+- **Claude Code or Codex** for a native plugin install (options 2 and 3). Codex packaging and skill
+  discovery were checked with **Codex CLI 0.157.1**. The skills also work through the Agent Skills
+  CLI in Claude Code, Cursor, Codex and other supported hosts — see option 1.
 - **macOS with Xcode Command Line Tools** for the toolchain gate (`xcodebuild -version`,
   `xcrun --sdk iphoneos --show-sdk-version`). The grep audit itself runs anywhere; the toolchain gate
   is what decides whether iOS 27.1 APIs may be written yet. **Xcode 27.1** (beta since 2026-09-18) is
@@ -31,7 +32,10 @@ Three components:
   quoting them from memory.
 - **Figma MCP server** for the Figma intake path only:
   ```bash
+  # Claude Code
   claude mcp add figma -- npx -y mcp-figma mcp
+  # Codex
+  codex mcp add figma -- npx -y mcp-figma mcp
   ```
   Set a Figma personal access token as that server requires. The tool names in the references
   (`mcp__figma__get_file`, …) follow the **server name** you register — if you register it under a
@@ -45,7 +49,8 @@ Three components:
 npx skills add anatoliykant/iphone-duo-plugin
 ```
 
-This installs the two skills; `agents/` is ignored by that CLI. To get the audit agent as well, copy
+This installs the two skills, including the complete read-only audit workflow; `agents/` is ignored
+by that CLI. Select Codex when prompted to install for Codex. To get the Claude audit agent as well, copy
 `agents/iphone-duo-audit.md` into `~/.claude/agents/` **or** install the plugin (option 2) — not
 both: a user-scope agent overrides the plugin one, and you end up maintaining two copies.
 
@@ -67,19 +72,52 @@ Installed copies are pinned to the `version` in `.claude-plugin/plugin.json`, so
 version bump plus a tag — run `claude plugin update iphone-duo@anatoliykant-plugins` to move to it.
 `CHANGELOG.md` lists what changed in each one.
 
-### 3. From the Claude community marketplace
+### 3. As a Codex plugin (skills + shared audit workflow)
 
-Once the submission is approved:
+```bash
+codex plugin marketplace add anatoliykant/iphone-duo-plugin
+codex plugin add iphone-duo@anatoliykant-plugins
+```
+
+Start a new Codex session after installation. For a local checkout, including changes that have
+not been published yet, replace the first command with:
+
+```bash
+codex plugin marketplace add /absolute/path/to/iphone-duo-plugin
+codex plugin add iphone-duo@anatoliykant-plugins
+```
+
+The portable root `plugin.json` declares the Agent Plugins format; Codex discovers both skills
+under `skills/`. `.agents/plugins/marketplace.json` points to this repository's root. The Claude
+manifest stays in `.claude-plugin/`, and both manifests carry the same version.
+
+To refresh a Git-backed marketplace, run `codex plugin marketplace upgrade anatoliykant-plugins`,
+then `codex plugin add iphone-duo@anatoliykant-plugins` and start a new session. A local marketplace
+reads from its checkout; keep that directory available.
+Use `codex plugin list --marketplace anatoliykant-plugins` to inspect the plugin.
+Clients without `codex plugin add` can use the plugin
+directory UI described in the [OpenAI plugin documentation](https://developers.openai.com/plugins/build/plugins)
+or the skills-only install above.
+
+### 4. From the Claude community marketplace
+
+The public `claude-community` catalog did not list this plugin when checked on **2026-09-30**.
+This does not indicate whether a submission was received; publication is managed by Anthropic.
+Once the entry is published:
 
 ```
 /plugin marketplace add anthropics/claude-plugins-community
 /plugin install iphone-duo@claude-community
 ```
 
-### 4. By hand
+### 5. By hand
 
 Copy `skills/iphone-duo` and `skills/hig-design-review` into `~/.claude/skills/` (or a project's
 `.claude/skills/`), and `agents/iphone-duo-audit.md` into `~/.claude/agents/`.
+
+For Codex skills-only installation, copy the two **whole skill directories**, including their
+`references/`, into `~/.agents/skills/` (user scope) or `.agents/skills/` in the app project
+(repo scope). Start a new session. No Claude agent file or Codex custom-role configuration is needed.
 
 ## Usage
 
@@ -87,16 +125,29 @@ Both skills load on their own when a request matches. Typical triggers: *"is thi
 iPhone Duo"*, *"what breaks on the foldable"*, *"add vertical toolbar support"*, *"reserved regions"*,
 *"review this Figma against the HIG"*.
 
-Invoke them explicitly with their scoped names:
+Invoke them explicitly in Claude Code with their scoped names:
 
 ```
 /iphone-duo:iphone-duo           # adaptation work
 /iphone-duo:hig-design-review    # mockup review
 ```
 
+In Codex, select the installed skill from the `$` picker, or use its full plugin name:
+
+```text
+$iphone-duo:iphone-duo Audit this repository for iPhone Duo readiness. Do not change source files.
+$iphone-duo:hig-design-review Review this Figma mockup against the HIG: <Figma URL>
+```
+
+Skills-only installs use `$iphone-duo` and `$hig-design-review` instead. Both skills accept
+`--help` and `--version` as standalone requests, for example `$iphone-duo:iphone-duo --version`.
+
 ### Readiness audit
 
-Ask for an audit in plain language and the skill delegates to the agent, or call it directly:
+Ask for an audit in plain language. In Codex the `iphone-duo` skill runs the shared
+`references/audit-workflow.md`; it also works when subagents are unavailable. In Claude Code the
+skill delegates to the audit agent when installed, or runs the same workflow directly. You can
+also call the Claude agent explicitly:
 
 ```
 Agent(subagent_type: "iphone-duo:iphone-duo-audit",
@@ -117,7 +168,9 @@ The report comes back in a fixed shape:
 ```
 
 Severities run BLOCKER (will not launch on the iOS 27 SDK) → HIGH → MEDIUM → LOW → INFO, and every
-finding points at the reference section that fixes it. The agent is read-only: it never edits code.
+finding points at the reference section that fixes it. Audits leave the source code unchanged;
+only scratch output and a report you explicitly request may be written. These are workflow
+instructions; filesystem enforcement depends on the host's permissions and sandbox configuration.
 
 ### Design review
 
@@ -128,14 +181,19 @@ comments on Figma nodes only when you explicitly ask, and never edits a file.
 ## What's inside
 
 ```
-skills/iphone-duo/            SKILL.md + 7 references
+plugin.json                  portable Codex / Agent Plugins manifest
+.agents/plugins/             Codex marketplace
+.claude-plugin/              Claude Code manifest + marketplace
+skills/iphone-duo/            SKILL.md + 8 references (includes the shared audit workflow)
 skills/hig-design-review/     SKILL.md + 4 references
-agents/iphone-duo-audit.md    read-only audit agent
+agents/iphone-duo-audit.md    Claude Code adapter for the shared audit workflow
+scripts/validate-plugin.py   package and version checks used by CI
 ```
 
 | Reference | Read when |
 |---|---|
 | `iphone-duo/references/device-and-platform.md` | Display and size-class facts, SDK tiers, Split View, `UIRequiresFullScreen`, timeline, App Store, the unverified list |
+| `iphone-duo/references/audit-workflow.md` | Shared read-only audit procedure, scope, scratch output, classification and report delivery |
 | `iphone-duo/references/audit-checklist.md` | Running or interpreting the audit: 23 grep categories, severities, report template, Apple's 13 migration steps |
 | `iphone-duo/references/layout-size-classes-safe-area.md` | Size classes, replacing `UIScreen.main`, width caches, state continuity, scene lifecycle, windows, safe area, the adaptive toolbox |
 | `iphone-duo/references/bars-and-toolbars.md` | Vertical bars: opt-in, order, axis behavior, badges, edge detection, compression, overflow, priority, opt-out |
@@ -176,8 +234,32 @@ annotations still read `iOS 27.1 beta`, so re-run the SDK symbol grep in
 `skills/iphone-duo/references/testing-and-sources.md` §Verify symbols and retag. That file's
 §Freshness lists the machine-checkable signals.
 
-Nothing in this repository talks to a network service on its own, stores credentials, or writes
-outside the directory you point it at. The audit agent is read-only by construction.
+The plugin has no executable runtime, bundled MCP servers or hooks. The host runs its instructions
+using your configured tools and permissions. Design review fetches live sources and can use your
+Figma MCP connection; audits write scratch output and an explicitly requested report.
+
+## Development checks
+
+```bash
+python3 scripts/validate-plugin.py
+claude plugin validate .
+git diff --check
+```
+
+The validator checks both manifests and marketplaces, skill version answers, bundled references,
+and release tags. Run it before publishing a version. See [CHANGELOG.md](CHANGELOG.md) for changes.
+
+## Release destinations
+
+Update both plugin manifests and both skill version literals together. Push `main` and a matching
+`v<version>` tag, wait for CI, then create the GitHub Release with notes from the changelog.
+
+| Destination | How the update reaches users |
+|---|---|
+| GitHub Releases | Publish the release for the matching version tag; source archives are generated by GitHub. |
+| `anatoliykant-plugins` for Claude Code and Codex | Both catalogs live in this repository and update with `main`; no separate marketplace upload. |
+| Agent Skills CLI / skills.sh | The CLI reads this GitHub repository. Verify with `npx skills add anatoliykant/iphone-duo-plugin --list`; the skills.sh website indexes it separately and may lag. |
+| Anthropic community | Submission/publication is managed through Anthropic's form, not by pushing to its catalog mirror. Verify the public entry before claiming a community release. |
 
 ## Credits
 

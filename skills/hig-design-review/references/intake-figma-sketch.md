@@ -4,7 +4,22 @@ Goal: a table of screens with frame size, size class, structure facts and a rend
 
 ## Figma (MCP tools)
 
-Tool names below are those of the npm server `mcp-figma` registered under the server name `figma` (`claude mcp add figma -- npx -y mcp-figma mcp`); the `mcp__<server>__` prefix follows that name, so a differently named server exposes the same tools under a different prefix.
+The examples below use the npm server `mcp-figma`, registered as `figma`. Configure it for the host
+you use, then configure its Figma token as that server requires:
+
+```bash
+# Claude Code
+claude mcp add figma -- npx -y mcp-figma mcp
+# Codex
+codex mcp add figma -- npx -y mcp-figma mcp
+```
+
+Discover the available Figma tools and their input schemas before calling them. The
+`mcp__<server>__` names below are examples, not a required prefix: the host and registered server
+name determine the actual names. These cache-file and argument examples apply to `mcp-figma`.
+If another Figma integration is configured, follow that provider's instructions and use its
+available tools for structure and rendered images. Do not assume it exposes `get_file` or
+`check_api_key`. Mark measurements or comments that its tools cannot retrieve as unverified.
 
 Tool names as exposed by the Figma MCP server: `mcp__figma__get_file`, `mcp__figma__get_file_nodes`, `mcp__figma__get_image`, `mcp__figma__get_image_fills`, `mcp__figma__get_comments`, `mcp__figma__post_comment` (write — §Comments only), `mcp__figma__get_file_components`, `mcp__figma__get_file_styles`, `mcp__figma__check_api_key`.
 
@@ -37,7 +52,7 @@ Shape: `{ name, lastModified, nodes: { "<id>": { document: { id, name, type, abs
    - `fills[].color` (0–1 RGB) → contrast checks (convert to hex, compute WCAG ratio yourself — do not eyeball);
    - `componentId` / names such as "Tab Bar", "Toolbar", "Navigation Bar", "Sheet", "Button/Primary" → which chrome is system-like vs hand-drawn;
    - children whose `absoluteBoundingBox` spans the frame's horizontal centre ± 24 pt on a regular-width frame → fold-avoidance candidates (D9).
-4. **Render.** `get_image(fileKey, ids: [...], format: "png", scale: 2)` → look at each screen (Read the image). Render **frames individually** — a whole section is downscaled silently (a 6 000-pt section comes back at ~4 000 px even at scale 2) and becomes unreadable. Renders catch what JSON hides: hierarchy, density, stretched forms, safe-area collisions.
+4. **Render.** `get_image(fileKey, ids: [...], format: "png", scale: 2)` → inspect each screen with the host's image-viewing tool. Render **frames individually** — a whole section is downscaled silently (a 6 000-pt section comes back at ~4 000 px even at scale 2) and becomes unreadable. Renders catch what JSON hides: hierarchy, density, stretched forms, safe-area collisions.
 5. **Comments.** `get_comments(fileKey)` returns the whole comment list **inline** (it can approach 1 MB; the harness spills oversized results to a tool-results file — `jq` that file, never read it whole). Root comments carry `client_meta.node_id`; replies carry only `parent_id` — join them. Match node ids against the **full-depth** descendant id set of the reviewed frames (collect ids with `jq '.. | objects | .id? // empty'` on the node JSON), otherwise every anchored comment looks unrelated. Do not repeat resolved points; reference open ones.
 6. **Styles / components** (optional). `get_file_styles`, `get_file_components` → whether text styles map to Dynamic Type styles (Large Title / Title 1–3 / Headline / Body / Callout / Subhead / Footnote / Caption 1–2) or are ad-hoc sizes.
 

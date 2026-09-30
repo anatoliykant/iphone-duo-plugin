@@ -3,8 +3,32 @@
 All notable changes to this plugin are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Each release is a `version` bump in `.claude-plugin/plugin.json` plus a matching git tag; Claude Code
-pins installed copies to that version, so `claude plugin update` is what moves a user forward.
+Each release bumps both `plugin.json` (Codex / Agent Plugins) and
+`.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
+matching git tag. See README.md for the update commands for each host.
+
+## [1.2.0] — 2026-09-30
+
+### Added
+
+- Native Codex packaging: portable root `plugin.json` and a repo marketplace at
+  `.agents/plugins/marketplace.json`, sharing the existing skills with Claude Code.
+- A shared read-only audit workflow bundled inside the `iphone-duo` skill. Codex and skills-only
+  installs can run the full audit without registering a Claude agent or starting a new session.
+- Codex installation, invocation, Figma MCP and Xcode MCP instructions; the designer guide now
+  covers both hosts.
+- A dependency-free package validator used by CI: both manifests, marketplaces, skill version
+  answers, bundled references and release tags must agree.
+
+### Changed
+
+- The Claude audit agent is a thin adapter to the shared workflow. The 23-category checklist,
+  severity rules, scope handling and report format remain in their existing shared references.
+- Skills recognize standalone help/version requests in both hosts. Flags embedded in a URL or
+  a longer task do not short-circuit the request. Version replies need no manifest lookup.
+- Audit-only requests return findings without applying fixes. Unavailable subagents fall back
+  to the same workflow in the current session.
+- Figma intake discovers actual tool names and schemas before using provider-specific examples.
 
 ## [1.1.0] — 2026-09-22
 
@@ -177,6 +201,7 @@ First public release.
   2026-09-14. The Xcode 27.1 beta had not shipped, so no iOS 27.1 symbol carries an official
   availability annotation yet — the skills say so and gate new APIs behind a toolchain check.
 
+[1.2.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v1.2.0
 [1.1.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v1.1.0
 [1.0.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v1.0.0
 [0.10.0]: https://github.com/anatoliykant/iphone-duo-plugin/releases/tag/v0.10.0

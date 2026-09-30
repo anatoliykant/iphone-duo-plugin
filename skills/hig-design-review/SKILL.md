@@ -7,21 +7,23 @@ description: Review Figma or Sketch mockups against Apple's Human Interface Guid
 
 ## Flags — answer and stop
 
-The host appends the invocation's arguments as `ARGUMENTS: …`. If they contain one of these flags,
-print **only** the corresponding block and do nothing else — no Figma calls, no HIG fetches. A Figma
-URL or anything else in the arguments is a normal request; ignore this section.
+Interpret flags only when the user's skill request consists solely of `-h`, `--help`, `-v`,
+or `--version`. Claude Code may append that request as `ARGUMENTS: …`; Codex supplies it in the
+user message after the skill mention (for example, `$iphone-duo:hig-design-review` in a plugin install
+or `$hig-design-review` in a skills-only install). Do not treat flags inside a URL,
+file name, quoted code, or a longer task as skill flags. For a flag-only request, print only the
+corresponding block and stop — no repo reads, toolchain gate, network calls or delegation.
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `hig-design-review 1.1.0` · Duo rules D1–D29 · HIG re-checked 2026-09-21 (page change log 2026-09-09)
+> `hig-design-review 1.2.0` · Duo rules D1–D29 · HIG re-checked 2026-09-21 (page change log 2026-09-09)
 
-<!-- skill-version: 1.1.0 — kept equal to .claude-plugin/plugin.json by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.2.0 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
-The number lives here, in the body, because that is the only place the skill can read at runtime: the
-host strips the YAML frontmatter before the skill is shown, and `npx skills add` copies `skills/`
-without `.claude-plugin/plugin.json`. A CI check fails the build if this literal and `plugin.json`
-disagree. If a `.claude-plugin/plugin.json` happens to sit two levels above the skill's base
-directory, read it and prefer it — a mismatch there means a broken release.
+The literal lives in the skill body so it also works in skills-only installs without either
+plugin manifest. CI keeps it equal to root `plugin.json` (Codex / Agent Plugins) and
+`.claude-plugin/plugin.json` (Claude Code). Answer version requests from this literal without
+searching for manifests in the user's project.
 
 **`-h` / `--help`** — print this, verbatim:
 
@@ -35,9 +37,9 @@ directory, read it and prefer it — a mismatch there means a broken release.
 >
 > **Draw before review** — derived @3x, label them as such: outer 466 × 678 · inner 626 × 890 portrait · inner 890 × 626 landscape (fold at x ≈ 445) · Split View half ≈ 313 × 890. At least one compact and one regular frame per screen. Apple's Figma and Sketch kits: developer.apple.com/design/resources/
 >
-> **Needs** the Figma MCP server for the Figma path (`claude mcp add figma -- npx -y mcp-figma mcp`) and network access — HIG pages are fetched live, never quoted from memory. Read-only: it comments on Figma nodes only when you ask, and never edits a design.
+> **Needs** the Figma MCP server for the Figma path (setup for your host is in `references/intake-figma-sketch.md`) and network access — HIG pages are fetched live, never quoted from memory. Read-only: it comments on Figma nodes only when you ask, and never edits a design.
 >
-> Implementation questions a finding raises → `/iphone-duo:iphone-duo`. `-v` for the version.
+> Implementation questions a finding raises → `$iphone-duo:iphone-duo` in a Codex plugin install (`$iphone-duo` for skills-only) or `/iphone-duo:iphone-duo` in Claude Code. `-v` for the version.
 
 ## Why this skill exists
 

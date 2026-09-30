@@ -1,6 +1,7 @@
 .DS_Store
 .claude/settings.local.json
 *.zip
+__pycache__/
 
 # Локальные инструкции для агентов — не публикуются в плагине
 CLAUDE.md

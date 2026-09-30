@@ -151,10 +151,16 @@ Earlier availability, unchanged: `ToolbarOverflowMenu`, `visibilityPriority` (Sw
 No custom MCP is needed for Duo: build / run / screenshot are covered by XcodeBuildMCP and Apple's own Xcode MCP bridge. Apple documents connecting external agents: Xcode → Settings → Intelligence → Model Context Protocol → "Allow external agents to use Xcode tools", then
 
 ```bash
+# Claude Code
 claude mcp add --transport stdio xcode -- xcrun mcpbridge
+# Codex
+codex mcp add xcode -- xcrun mcpbridge
 ```
 
-(`https://developer.apple.com/documentation/xcode/giving-external-agents-access-to-xcode` — JS-rendered page; the command comes from a secondary report citing it.) Device Hub pose switching stays manual even with the bridge.
+Both commands are documented by Apple in
+[Giving external agents access to Xcode](https://developer.apple.com/documentation/xcode/giving-external-agents-access-to-xcode).
+Verify with `claude mcp list` or `codex mcp list`, and open the app project in Xcode before using
+its tools. Device Hub pose switching stays manual even with the bridge.
 
 ## Freshness — what is still open
 

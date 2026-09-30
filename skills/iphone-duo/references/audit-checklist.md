@@ -1,6 +1,7 @@
 # iPhone Duo readiness audit — grep checklist and report template
 
-Read by the `iphone-duo-audit` agent (the only place the grep set lives — do not duplicate it elsewhere). Also usable by hand.
+Read by the shared `audit-workflow.md`, used in Claude Code and Codex (the only place the grep set
+lives — do not duplicate it elsewhere). Also usable by hand.
 
 ## Ground rules
 

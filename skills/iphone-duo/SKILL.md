@@ -7,29 +7,30 @@ description: Adapt, audit, or build iOS apps (Swift, UIKit + SwiftUI) for iPhone
 
 ## Flags — answer and stop
 
-The host appends the invocation's arguments as `ARGUMENTS: …`. If they contain one of these flags,
-print **only** the corresponding block and do nothing else — no repo reads, no audit, no toolchain
-gate. Anything else in the arguments is a normal request; ignore this section.
+Interpret flags only when the user's skill request consists solely of `-h`, `--help`, `-v`,
+or `--version`. Claude Code may append that request as `ARGUMENTS: …`; Codex supplies it in the
+user message after the skill mention (for example, `$iphone-duo:iphone-duo` in a plugin install
+or `$iphone-duo` in a skills-only install). Do not treat flags inside a URL,
+file name, quoted code, or a longer task as skill flags. For a flag-only request, print only the
+corresponding block and stop — no repo reads, toolchain gate, network calls or delegation.
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `iphone-duo 1.1.0` · references SDK-verified 2026-09-21 against iOS 27.1 (Xcode 27.1 beta 1) · design rules D1–D29
+> `iphone-duo 1.2.0` · references SDK-verified 2026-09-21 against iOS 27.1 (Xcode 27.1 beta 1) · design rules D1–D29
 
-<!-- skill-version: 1.1.0 — kept equal to .claude-plugin/plugin.json by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.2.0 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
-The number lives here, in the body, because that is the only place the skill can read at runtime: the
-host strips the YAML frontmatter before the skill is shown, and `npx skills add` copies `skills/`
-without `.claude-plugin/plugin.json`. A CI check fails the build if this literal and `plugin.json`
-disagree, so it cannot drift. If a `.claude-plugin/plugin.json` happens to sit two levels above the
-skill's base directory, read it and prefer it — a mismatch there means a broken release, and saying
-so is more useful than either number alone.
+The literal lives in the skill body so it also works in skills-only installs without either
+plugin manifest. CI keeps it equal to root `plugin.json` (Codex / Agent Plugins) and
+`.claude-plugin/plugin.json` (Claude Code). Answer version requests from this literal without
+searching for manifests in the user's project.
 
 **`-h` / `--help`** — print this, verbatim:
 
 > **iphone-duo** — adapt, audit or build iOS apps for iPhone Duo, Apple's foldable (iOS 27.1, ships 2026-10-23).
 >
 > **Ask for**
-> - *"is this app ready for iPhone Duo"* → read-only grep audit via the `iphone-duo:iphone-duo-audit` agent, severity-ranked, `file:line` per finding
+> - *"is this app ready for iPhone Duo"* → read-only grep audit in Claude Code or Codex, severity-ranked, `file:line` per finding
 > - *"fix X for Duo"* → the reference that owns X, then the change, in Apple's 13-step order
 > - *"build this screen"* → size-class-first with standard containers
 >
@@ -41,7 +42,7 @@ so is more useful than either number alone.
 >
 > **Reference files** — `device-and-platform` facts · `audit-checklist` the grep set · `layout-size-classes-safe-area` layout · `bars-and-toolbars` bars · `arrangements-and-reserved-regions` the fold · `hinge-scenes-camera` hardware · `testing-and-sources` toolchain, Device Hub, freshness.
 >
-> Mockups rather than code → `/iphone-duo:hig-design-review`. `-v` for the version.
+> Mockups rather than code → `$iphone-duo:hig-design-review` in a Codex plugin install (`$hig-design-review` for skills-only) or `/iphone-duo:hig-design-review` in Claude Code. `-v` for the version.
 
 ## Why this skill exists
 
@@ -82,7 +83,7 @@ The goal in one sentence: make the app excellent at every size first, then use D
 
 | Request looks like… | Do |
 |---|---|
-| "Is this app ready for iPhone Duo / the foldable?", "audit", "what breaks on Duo" | Delegate: `Agent(subagent_type: "iphone-duo:iphone-duo-audit", prompt: "Repo root: <absolute repo path>. Checklist: <this skill's base directory>/references/audit-checklist.md. Scratch dir: <path>. Write the report to <path>. <scope hints>")` — the base directory is printed at the top when this skill loads. Read-only, returns a severity-ranked report. Then fix in Apple's order (§Migration order) using the reference each finding points to. |
+| "Is this app ready for iPhone Duo / the foldable?", "audit", "what breaks on Duo" | Read `references/audit-workflow.md` and follow §Audit dispatch below. Read-only: return the severity-ranked report; apply fixes only when the user also requested implementation. |
 | Fix layout, `UIScreen.main`, orientation/idiom checks, cached widths, safe area, windows, scene lifecycle | `references/layout-size-classes-safe-area.md` |
 | Toolbar / navigation bar / tab bar / sidebar on Duo, overflow, badges, custom bar views | `references/bars-and-toolbars.md` |
 | Fold, two columns, split/overlay, "the camera covers my button", grid columns | `references/arrangements-and-reserved-regions.md` |
@@ -92,7 +93,26 @@ The goal in one sentence: make the app excellent at every size first, then use D
 | Display facts, size classes per pose, timeline, App Store screenshots, what is unverified | `references/device-and-platform.md` |
 | New screen from scratch | Build size-class-first with standard containers (layout reference), then the bars reference for its toolbar. |
 
-Do not run the grep audit inline in the main context — that is what the agent is for. The agent reads the checklist itself; passing the path only saves it a search. Installed as the `iphone-duo` plugin, the agent type is scoped — `iphone-duo:iphone-duo-audit` — and `${CLAUDE_PLUGIN_ROOT}` resolves inside both files. Copied by hand into `~/.claude/agents/` instead, it is plain `iphone-duo-audit`. If `Agent` reports the type is not found, the agent file was added after the session started — new agents appear with a delay of a few minutes (skills appear immediately): retry on the next turn, restart the session, or as a one-off pass the agent file's body verbatim as the prompt of a `general-purpose` agent. Hosts without subagents (Cursor, Codex): run `references/audit-checklist.md` by hand in a fresh session.
+## Audit dispatch — Claude Code, Codex and skills-only hosts
+
+Resolve `references/audit-workflow.md` and `references/audit-checklist.md` relative to this
+installed `SKILL.md`, not the user's working directory. Both files ship with this skill,
+including when installed alone through the Agent Skills CLI.
+
+- **Claude Code with the audit agent available:** delegate using
+  `Agent(subagent_type: "iphone-duo:iphone-duo-audit", prompt: "Repo root: <absolute repo path>. Workflow: <absolute skill directory>/references/audit-workflow.md. <scope and output path, if requested>")`.
+  A manually installed user agent may instead be named `iphone-duo-audit`.
+- **Codex:** read and execute `references/audit-workflow.md` using the available file and shell
+  tools. The Claude `Agent(...)` API and `agents/iphone-duo-audit.md` registration are not required.
+  If the user requests delegation and the session exposes subagents, pass one the absolute
+  workflow and repo paths, scope, and the read-only constraint, then collect its report. Do not
+  assume that a Claude agent name is a registered Codex role.
+- **Skills-only hosts or an unavailable Claude agent:** execute the same workflow in the current
+  session. Missing subagent support is not a reason to ask the user to restart or run it by hand.
+
+Keep raw grep output in scratch files and return the compact report. Do not change source files,
+create commits, run builds, or apply findings during a read-only audit. Fix requests follow
+Apple's migration order below after the audit.
 
 ## Migration order (Apple, 13 steps — full text in `references/audit-checklist.md`)
 
@@ -109,7 +129,7 @@ Classify every change by tier and finish Tier 1 before proposing Tier 2/3: **Tie
 - Gate with `if #available(iOS 27.1, *)` when the deployment target is lower. Pieces that already exist need lower gates: `ToolbarOverflowMenu`, `visibilityPriority`, `.topBarPinnedTrailing`, `defaultTabBarPlacement`, `isTabViewSidebarAvailable`, `.sceneAccessory`, `presentationPlacement(_:)` / `UISheetPresentationController.preferredPlacement` (iOS 27.0); `additionalOverflowItems`, `pinnedTrailingGroup` (iOS 16); `UIWindowScene.ActivationAction` (iOS 15); `isCameraSensorOrientationCompensationEnabled`, `dynamicAspectRatio`, badges, concentricity, `backgroundExtensionEffect()` / `UIBackgroundExtensionView` (iOS 26).
 - The Duo APIs are not Duo-only. An `ArrangementView` renders two columns wherever there is room and one where there is not (lab 286 56:21), and bar compression / overflow priorities apply to any crowded bar. Write them for the whole lineup, not behind a device check — there is no Duo idiom, it reports `.phone` (lab 286 52:58: "It is a phone … it responds to a phone idiom").
 - SwiftUI `defaultTabBarPlacement(.sidebar)` is iOS 27.0 (verified); on iOS 18–26 use `defaultAdaptableTabBarPlacement(.sidebar)`.
-- Fixes follow the host project's own conventions (its `CLAUDE.md` / style rules) and introduce no new `UIScreen.main`, force unwraps or `fatalError`. Remember that SPM packages do not see the app target's compile-time flags — `#available` works everywhere, `#if` flags may not.
+- Fixes follow the host project's own conventions (its `AGENTS.md`, `CLAUDE.md` and style rules) and introduce no new `UIScreen.main`, force unwraps or `fatalError`. Remember that SPM packages do not see the app target's compile-time flags — `#available` works everywhere, `#if` flags may not.
 
 ## Verifying
 
@@ -126,6 +146,7 @@ Still open — check on first use after **2026-10-23** (ship date): an iOS 27.1 
 | File | Read when |
 |---|---|
 | `references/device-and-platform.md` | Display/size-class facts, SDK tiers, Split View, `UIRequiresFullScreen`, timeline, App Store, **unverified** list, tech-talk map |
+| `references/audit-workflow.md` | Shared read-only audit procedure for Claude Code, Codex and skills-only installs |
 | `references/audit-checklist.md` | Running or interpreting the readiness audit: 23 grep categories, severities, tiered report template, Apple's 13 steps |
 | `references/layout-size-classes-safe-area.md` | Size classes, replacing `UIScreen.main`, static width caches, state continuity, scene lifecycle, windows, safe area, concentricity, sidebar + adaptive toolbox (`ViewThatFits`, `AnyLayout`, adaptive grids), per-screen checklist, fixed widths, HIG do/don't |
 | `references/bars-and-toolbars.md` | Vertical bars: opt-in, order, which column owns a control, axis behavior, badges, edge detection, compression, overflow, priority, opt-out — all 111462 code |
