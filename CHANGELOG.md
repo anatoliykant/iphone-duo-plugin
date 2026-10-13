@@ -7,6 +7,16 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.2.1] — 2026-10-13
+
+### Added
+
+- `iphone-duo` testing reference: XCUITest on the open iPhone Duo simulator. `XCUIApplication.frame`
+  stays portrait (669×951) while the interface is landscape (951×669), so `app.coordinate(…)`,
+  `app.swipeUp()` / `app.swipeDown()` and `app.frame` rotate gestures by 90°. Build screen-level
+  gestures from `app.windows.firstMatch`. Measured with a probe test on Xcode 27.1 beta; the fold does
+  not swallow touches. `SKILL.md` points to the section from its testing summary.
+
 ## [1.2.0] — 2026-09-30
 
 ### Added

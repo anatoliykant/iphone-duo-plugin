@@ -16,9 +16,9 @@ corresponding block and stop — no repo reads, toolchain gate, network calls or
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `iphone-duo 1.2.0` · references SDK-verified 2026-09-21 against iOS 27.1 (Xcode 27.1 beta 1) · design rules D1–D29
+> `iphone-duo 1.2.1` · references SDK-verified 2026-09-21 against iOS 27.1 (Xcode 27.1 beta 1) · design rules D1–D29
 
-<!-- skill-version: 1.2.0 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.2.1 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
 The literal lives in the skill body so it also works in skills-only installs without either
 plugin manifest. CI keeps it equal to root `plugin.json` (Codex / Agent Plugins) and
@@ -133,7 +133,7 @@ Classify every change by tier and finish Tier 1 before proposing Tier 2/3: **Tie
 
 ## Verifying
 
-With Xcode 27.1 (beta 1 or later): Device Hub poses — closed portrait/landscape, open flat, book, table, tent — plus **the transitions between them**, Split View via home-indicator drag, PiP stacking, and reserved regions. Camera apps launch in the simulator but find no capture device, so scene accessories need hardware. Without 27.1: iPhone Mirroring resized to a Duo-like ratio (keeps the phone idiom — Apple's own first recommendation), an iPad with window resizing, width-parameterized render tests at 466 / 626 / 313 pt (derived), and the TN3187 launch check with the 27.0 SDK. One screenshot is not verification — cover several geometries and a mid-session fold. Details: `references/testing-and-sources.md`.
+With Xcode 27.1 (beta 1 or later): Device Hub poses — closed portrait/landscape, open flat, book, table, tent — plus **the transitions between them**, Split View via home-indicator drag, PiP stacking, and reserved regions. Camera apps launch in the simulator but find no capture device, so scene accessories need hardware. Without 27.1: iPhone Mirroring resized to a Duo-like ratio (keeps the phone idiom — Apple's own first recommendation), an iPad with window resizing, width-parameterized render tests at 466 / 626 / 313 pt (derived), and the TN3187 launch check with the 27.0 SDK. One screenshot is not verification — cover several geometries and a mid-session fold. XCUITest on the open Duo: `XCUIApplication.frame` stays portrait while the interface is landscape, so build gestures and screen coordinates from `app.windows.firstMatch`, not from `app`. Details: `references/testing-and-sources.md`.
 
 ## Freshness
 

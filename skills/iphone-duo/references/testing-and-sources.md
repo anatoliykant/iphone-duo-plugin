@@ -108,6 +108,34 @@ section — never into code. Do not restructure working screens around assumptio
     xcrun agent skills export --output-dir <path> [--replace-existing]
   ```
 
+## UI tests (XCUITest) on the open Duo — take coordinates from the window
+
+Observed locally 2026-10-13 (Xcode 27.1 beta, iPhone Duo simulator iOS 27.1, open flat at 180°).
+Open flat, the interface is landscape — `XCUIDevice.shared.orientation` is `.landscapeRight` and the
+window is 951×669 pt — while `XCUIApplication.frame` **EXISTING(iOS 9)** stays portrait at 669×951.
+Everything derived from the application's frame comes out rotated by 90°:
+
+- `app.coordinate(withNormalizedOffset:)` **EXISTING(iOS 9)** — a "swipe up" from (0.5, 0.6) to
+  (0.5, 0.3) becomes a sideways drag and scrolls nothing; a tap "near the top" lands elsewhere.
+- `app.swipeUp()` / `app.swipeDown()` **EXISTING(iOS 9)** — do not scroll either.
+- `app.frame` used to clip or compare element frames cuts landscape frames at 669 pt.
+
+Element frames and the window's frame (`app.windows.firstMatch`) are in interface coordinates and
+correct. Probe test: a drag built from `app.windows.firstMatch.coordinate(withNormalizedOffset:)`,
+dy 0.6 → 0.3, scrolled the content at dx 0.25, 0.5 and 0.75; the same drag built from `app` scrolled
+nothing at any dx.
+
+- Build screen-level gestures, taps and the screen rectangle from `app.windows.firstMatch`, never from
+  `app`. One shared helper (for example an `appWindow` property on the base test class) fixes every
+  caller at once; on a portrait iPhone the two frames are equal, so nothing changes there.
+- **The fold does not swallow touches.** A drag over the hinge, at the window's center, scrolls the
+  same as one over either column. "The swipe landed on the fold" is the tempting first guess for a
+  two-column screen and it is wrong here.
+- Symptom: "element not found while scrolling" or "tap missed the popup" only on the open Duo, with the
+  same tests green on a portrait iPhone.
+- AXe 1.8 `swipe` on a second open Duo simulator moved nothing in the same session, in portrait or
+  landscape coordinates. Cause not established — do not carry the XCUITest result over to AXe.
+
 ## Proxies when 27.1 is not installed
 
 1. **iPhone Mirroring** — Apple's own first recommendation (Technology Overviews; lab 285 ~21:30, lab 286 ~05:00): resize the mirrored window to a Duo-like aspect ratio. It keeps the **phone idiom**, so the frameworks behave the way they will on Duo. See TN3210 "Optimizing your app for iPhone Mirroring".
