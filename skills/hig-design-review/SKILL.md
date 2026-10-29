@@ -16,9 +16,9 @@ corresponding block and stop — no repo reads, toolchain gate, network calls or
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `hig-design-review 1.2.1` · Duo rules D1–D29 · HIG re-checked 2026-09-21 (page change log 2026-09-09)
+> `hig-design-review 1.3.0` · Duo rules D1–D32 · HIG re-checked 2026-10-28, text unchanged since 2026-09-21 (page change log 2026-09-09)
 
-<!-- skill-version: 1.2.1 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.3.0 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
 The literal lives in the skill body so it also works in skills-only installs without either
 plugin manifest. CI keeps it equal to root `plugin.json` (Codex / Agent Plugins) and
@@ -33,7 +33,7 @@ searching for manifests in the user's project.
 >
 > **Get back** one row per finding — screen, node id, what is wrong, the quoted HIG sentence, and which system component fixes it — plus a verdict per screen and for the set: **Ready** / **Ready with notes** / **Not ready**. Findings are BLOCKER / MUST-FIX / SHOULD / NOTE. A rule with no citable sentence is capped at SHOULD and labelled reviewer judgment.
 >
-> **Checks** general iOS (layout, safe areas, typography and Dynamic Type, colour and contrast, accessibility, navigation and bars, sheets, the iOS 26 design system) plus **D1–D29** for iPhone Duo: both displays designed, vertical bars, bar item order and icons, fold avoidance, even grid columns, camera regions, arrangements, Split View, pose transitions.
+> **Checks** general iOS (layout, safe areas, typography and Dynamic Type, colour and contrast, accessibility, navigation and bars, sheets, the iOS 26 design system) plus **D1–D32** for iPhone Duo: both displays designed, vertical bars, bar item order and icons, fold avoidance, even grid columns, camera regions, arrangements, Split View, pose transitions, scroll direction across the fold, search placement.
 >
 > **Draw before review** — derived @3x, label them as such: outer 466 × 678 · inner 626 × 890 portrait · inner 890 × 626 landscape (fold at x ≈ 445) · Split View half ≈ 313 × 890. At least one compact and one regular frame per screen. Apple's Figma and Sketch kits: developer.apple.com/design/resources/
 >
@@ -65,7 +65,7 @@ A Duo review needs at least one frame per target class: compact (outer display) 
 1. **Intake** — collect frames, sizes, structure, renders and existing comments (`references/intake-figma-sketch.md`). Map every frame to a size class (compact / regular / Split View half) by its bounding box. Before judging D1, scan **every page** of the file for Duo-sized frames (≈ 466 / 678 / 626 / 890 pt) or pages named Duo / fold / hinge — Duo mockups often live on their own page, outside the node ids you were given.
 2. **Inventory per screen** — navigation pattern (tab bar, nav bar, sidebar, modal), bars and their items (title + symbol?), lists / grids (column count), text blocks (longest line), interactive controls near the frame's horizontal centre, custom chrome (hand-drawn bars, floating panels), safe-area treatment (content under the camera / home indicator?).
 3. **General HIG pass** — walk `references/hig-general-checklist.md`; fetch the relevant HIG page JSON for each area you flag and cite the sentence.
-4. **Duo pass** — walk `references/duo-design-rules.md` D1–D29 for every screen that will ship on Duo.
+4. **Duo pass** — walk `references/duo-design-rules.md` D1–D32 for every screen that will ship on Duo.
 5. **Report** — `references/report-template.md`; one row per finding, severity, node id / artboard, rule id, citation, concrete fix.
 6. **Verdict** — Ready for implementation / Ready with notes / Not ready (rules in §Verdict).
 7. **Figma comments (optional)** — only after the user has seen the report and confirmed, or when the request explicitly says "post comments": one comment per BLOCKER / MUST-FIX finding on its node, prefixed `[HIG review]`, text = rule id + one sentence + citation. Never post NOTE-level items. Never edit the file.
@@ -98,14 +98,14 @@ The verdict is per screen and for the set. Always add a "Not checkable from a mo
 
 ## Freshness
 
-The Duo HIG page's change log still ends at 2026-09-09 (re-checked 2026-09-21); check it on every run (JSON: `…/designing-for-iphone-duo.json`, heading "Change log"). If it moved, re-read the page before trusting D1–D29 and update `references/duo-design-rules.md`. The page has since grown a **Developer documentation** block linking "Preparing your app for iPhone Duo" and both `ReservedRegion` pages — that article now backs D18, D23 and D25, so hash it too. General pages are fetched live every time.
+The Duo HIG page's change log still ends at 2026-09-09 (re-checked 2026-10-28; the text was diffed against a 2026-09-21 copy and has not changed); check it on every run (JSON: `…/designing-for-iphone-duo.json`, heading "Change log"). If it moved, re-read the page before trusting D1–D32 and update `references/duo-design-rules.md`. The page has since grown a **Developer documentation** block linking "Preparing your app for iPhone Duo" and both `ReservedRegion` pages — that article now backs D18, D23 and D25, so hash it too. General pages are fetched live every time.
 
 ## References
 
 | File | Read when |
 |---|---|
 | `references/intake-figma-sketch.md` | Pulling frames, sizes, renders, comments from Figma via MCP; Sketch exports; size-class mapping |
-| `references/duo-design-rules.md` | The iPhone Duo checklist D1–D29 with sources (HIG Duo page, the "Preparing your app for iPhone Duo" article, tech talks 111466 / 111462 / 111463, Group Labs 285 / 286) |
+| `references/duo-design-rules.md` | The iPhone Duo checklist D1–D32 with sources (HIG Duo page, the "Preparing your app for iPhone Duo" article, tech talks 111466 / 111462 / 111463, Group Labs 285 / 286 / 287 / 288, the DTS summary of the labs) |
 | `references/hig-general-checklist.md` | General iOS checks per area + how to fetch and cite the live HIG JSON pages |
 | `references/report-template.md` | Report shape, severity rows, verdict block, Figma comment format |
 

@@ -1,6 +1,6 @@
 # Hinge, multiple scenes, scene accessories, cameras
 
-Sources: tech talks 111464 "Leverage multiple displays and scenes on iPhone Duo" and 111465 "Build a great camera experience for iPhone Duo", plus the two developer articles — "[Choosing a camera by the direction it faces](https://developer.apple.com/documentation/avkit/choosing-a-camera-by-the-direction-it-faces)" (AVKit) and "[Registering a camera capture accessory on iPhone Duo](https://developer.apple.com/documentation/avfoundation/registering-a-camera-capture-accessory-on-iphone-duo)" (AVFoundation), which arrived after the talks and carry the full code. Blocks marked **VERBATIM** are copied from a talk Code section or an article. Everything new here is **iOS 27.1 SDK**, checked against it on 2026-09-21.
+Sources: tech talks 111464 "Leverage multiple displays and scenes on iPhone Duo" and 111465 "Build a great camera experience for iPhone Duo", plus the two developer articles — "[Choosing a camera by the direction it faces](https://developer.apple.com/documentation/avkit/choosing-a-camera-by-the-direction-it-faces)" (AVKit) and "[Registering a camera capture accessory on iPhone Duo](https://developer.apple.com/documentation/avfoundation/registering-a-camera-capture-accessory-on-iphone-duo)" (AVFoundation), which arrived after the talks and carry the full code. Blocks marked **VERBATIM** are copied from a talk Code section or an article. Everything new here is **iOS 27.1 SDK**, checked against it on 2026-09-21 and re-verified on 2026-10-28 against the released Xcode 27.1 and Xcode 27.2 RC; Core Motion and Core Location body APIs added 2026-10-28.
 
 ## §Hinge
 
@@ -108,6 +108,28 @@ Contract: the closure receives `(previous, context)`; `context.hinge` is `nil` o
 ```
 
 The angle says nothing about where the usable regions are, and the system already moves interactive elements away from the fold. Anything that ends in `frame`, `offset`, `padding`, `width`, `columns` must come from size classes, `reservedRegions`, or an arrangement. Legitimate uses: audio/visual parameters, 3D/AR camera tilt, a game mechanic, haptics, a "laid on the table" mode that changes *content*, not geometry.
+
+Limits from Apple: "The rate and granularity of hinge angle updates are system policy and can change based on system state, so don't depend on a particular update frequency or precision" (DTS summary); "Is there a guaranteed angle range and precision? There is not" ([847765](https://developer.apple.com/forums/thread/847765)) — normalize and clamp instead of assuming 0…180; "For many situations using the updates directly will be fine. But because there's no guaranteed frequency or angle increment, others may require some smoothing, like through a spring animation" ([847866](https://developer.apple.com/forums/thread/847866)). "There's no single system-provided pose value" — an effect that needs a pose infers it from status, angle, orientation and size class. `onHingeChange` "will be called with the initial context when the view reaches a hierarchy that has hinge data" (847765).
+
+**A game built around the hinge** is not ruled out, but it is judged on its own terms ([847857](https://developer.apple.com/forums/thread/847857), DTS): "game mechanics are evaluated differently if they provide an engaging, purposeful experience", and when the core experience needs the hinge, "provide a clear, graceful messaging screen (such as a "this needs iPhone Duo" view) when users attempt to launch it on unsupported devices" — with no promise: "We cannot provide guarantees for App Review approval." The hinge-presence gate in `layout-size-classes-safe-area.md` §Scope is the check for that screen.
+
+## §Motion and heading
+
+On a phone that folds, "which way is up" depends on which display shows the UI. iOS 27.0 lets Core Motion and Core Location measure relative to a view instead of the chassis — the DTS summary: set the motion manager's `deviceMotionBody` to your view, "and the system automatically transforms the sensor values to align with your UI's actual orientation, based on whether it's shown on the inner or outer display … including which face is up". Then read `CMDeviceMotion.attitude` as before.
+
+```swift
+// SDK(27.1); the API itself is iOS 27.0 — UIView conforms to CMBodyIdentifiable and CLBodyIdentifiable
+motionManager.deviceMotionBody = view            // CMMotionManager
+motionManager.startDeviceMotionUpdates(using: .xArbitraryZVertical, to: .main) { motion, _ in
+    // attitude already corrected for the display the view is on
+}
+locationManager.headingBody = view               // CLLocationManager; replaces headingOrientation
+```
+
+- Only "whenever your app is full screen on the display hosting your UI. If your scene isn't full screen, body-relative orientation isn't available, and you receive motion data in the device's default reference frame instead."
+- `CLLocationManager.headingOrientation` is **deprecated in iOS 27.0** with `headingBody` as the replacement — compasses, AR and map heading should move.
+- SwiftUI has no counterpart in the 27.1 SDK (the `_CoreMotion_SwiftUI` / `_CoreLocation_SwiftUI` overlays are empty): pass a `UIView` — the hosting controller's view or one from a `UIViewRepresentable`.
+- Layout still does not need any of this — "Does my app need to know which face is up? No. Use size classes and trait collections" (DTS summary). Apple's Measure team called the level "more difficult than it sounds" on Duo (lab 288 57:21).
 
 ## §Scenes and displays
 
@@ -226,6 +248,8 @@ Rules the article states outright:
 
 **When it disappears** (article + lab 286 37:40): capture stops, the app leaves the foreground, someone folds the device closed — **or the app enters Split View** (lab 286 38:11: "if you're in split view, when the iPhone Duo is open, then you also can't use scene accessories then"). Navigating to a view that registers its own content makes the previous registration unavailable, and going back restores it: the system presents the top-most registration of a kind. Different kinds never compete.
 
+The Xcode 27.1 Duo simulator presents a `CameraCaptureAccessory` on both displays even without an active capture session (release notes 190155353, fixed in Xcode 27.2 RC) — do not take availability from that simulator. An alarm-clock face on the folded device is AlarmKit, not an accessory (DTS summary).
+
 Only `CameraCaptureAccessory` / `cameraCapture(sceneConfiguration:)` is documented — do not invent other accessory types, and do not plan generic outer-display companions (presenter notes, dashboards) until Apple documents one. Lab 286 14:09 confirms there is no non-camera path today — showing content on both displays "is generally the camera accessory, which is really only for camera apps" — and lab 285 43:34 that "apps that have active camera sessions can use the inner and outer screens simultaneously". Kid Cam and Duo FaceTime are Apple's own examples. The glowing alarm clock on the inner display is **AlarmKit**, not an accessory (lab 286 14:21).
 
 It is a **full UIScene**, not a widget: lab 286 33:05, "It's not like widgets where you have to be careful about what you what content you can put in them. You get a full UI scene and you can toss whatever you want in there." The accessory view runs on the **outer** display → compact width, its own safe area and vertical-bar behavior; it needs its own camera direction coordinator if it shows a preview (§Camera). Simulator has no camera, so this one is device-only.
@@ -235,6 +259,13 @@ It is a **full UIScene**, not a widget: lab 286 33:05, "It's not like widgets wh
 ### Hardware facts
 
 First iPhone with **two front cameras**; both **square sensors with an ultrawide field of view**. Inner = first under-display camera on iPhone (1080p up to 60 fps). Outer = 12 MP Center Stage, corner, up to 4K / 120 fps. Rear: 48 MP Fusion Main + 48 MP Fusion Ultra Wide.
+
+The inner camera in detail, from Apple's answers in the 2026-09-23 Photos & Camera forum Q&A ([847839](https://developer.apple.com/forums/thread/847839), Media Engineer): "The inner display camera supports 1080p natively at both 30 and 60 fps", and "It supports stills, video recording, video data output, metadata output (such as face / body / QR code detection), just like the outer display camera. It is suitable for use in long streaming sessions and is supported in the public API as such." Behind the screen "the camera system runs additional per frame processing to clean up diffraction, flare, and other artifacts", which is "thermally sustainable and real-time at 30 and 60 fps" — still "check for frame drops and scale your work accordingly"; its images "have a little more noise than the outer display camera". For continuous analysis set `alwaysDiscardsLateVideoFrames` to `true` on the `AVCaptureVideoDataOutput` ([847809](https://developer.apple.com/forums/thread/847809), DTS).
+
+- **Where it is**: "When the inner display is positioned in landscape orientation, the front facing camera is on the right half of the screen, about halfway between the crease and the edge of the display" ([847748](https://developer.apple.com/forums/thread/847748)). Useful for reading mockups; code still queries the `.occlusion` region.
+- **It shows over other apps**: while a persistent camera session such as a FaceTime call runs, "The under-display FaceTime camera is always visible over the app" ([847772](https://developer.apple.com/forums/thread/847772), DTS) — an app without any camera code still gets an active occlusion region and must keep titles and controls out of it.
+- **Which cameras exist when**: "You cannot use the inner built in ultra wide camera when the inner display is closed (for any camera case). Otherwise the cameras are available at any time" — and do not derive that from the hinge: "Please don't use hinge changes to determine what cameras are available. Instead, use the AVCaptureDeviceDirectionCoordinator. It will tell you which cameras are available for the given UIView" ([847754](https://developer.apple.com/forums/thread/847754)).
+- **Turned around**: open and flipped, "you can use either of the "rear" cameras as front cameras", but the outer display is then in portrait; a landscape outer display needs the laptop-style half fold "sitting on its camera bump" ([847748](https://developer.apple.com/forums/thread/847748)).
 
 ### Virtual front camera (zero-code path)
 
@@ -267,6 +298,8 @@ final class DeviceLookup {
 
 "Capture from the two physical cameras when capture is your app's main job."
 
+What the switch looks like to a frame-processing app ([847766](https://developer.apple.com/forums/thread/847766), Frameworks Engineer): "There is no explicit dropped frame reason or session interruption when the Virtual Front Camera switches between cameras" — you see "a discontinuity in the timestamp of CMSampleBuffers sent out on AVCaptureVideoDataOutput", the latency depends on the session configuration, and "you'll see frame drops when the app switches between the physical outer and inner front cameras". "Optical intrinsics and lens distortion coefficients should get updated as the Virtual Front Camera switches cameras" — re-read them per frame instead of caching them.
+
 ### Individual cameras (full capability)
 
 ```swift
@@ -277,6 +310,8 @@ final class DeviceLookup {
 ```
 
 Using them means **you** switch cameras when the device opens or closes.
+
+Several at once: "You can have an AVCaptureMultiCamSession that is configured to use a back camera and a front camera together", and `supportedMultiCamDeviceSets` on the discovery session "indicates support for three physical cameras running simultaneously" ([847763](https://developer.apple.com/forums/thread/847763)). There is no virtual device that pairs the rear cameras with the outer front ultrawide — "AVCaptureMultiCamSession can be used to access the rear and front cameras simultaneously" ([847781](https://developer.apple.com/forums/thread/847781)).
 
 ```swift
 // 111465 3:00 — Understand AVCaptureDevicePosition                  VERBATIM
@@ -393,6 +428,8 @@ Call it on every map **and again after connecting a new device** — "removing a
 
 The rear camera's full field of view on the inner display leaves extra space: offset the preview or let it fill. Control fit with `videoGravity` (EXISTING).
 
+Why, and which to pick — lab 287 16:58: open, "the camera on the back is still a portrait aspect ratio … But the screen is in a landscape aspect ratio." Apple chose per use case: photography shows the full sensor preview framed in the middle (the Camera app's default), while AR experiences fill edge to edge and crop, because they are "less about like the highest quality exact camera frames and more about the interactive experience". Opening the device is both a camera change and a layout transition (18:02): a rear-camera app keeps its camera and gains space; a front-camera app (video calls) moves from the outer to the inner camera — automatic with the virtual front camera, reported by the direction coordinator when you pick cameras yourself. Do not reconstruct either from display size and orientation: 16:34, "The variety of poses on iPhone Duo mean that you really can't", use the rotation coordinator and the direction coordinator.
+
 ```swift
 // 111465 7:30 — Configure the video preview layer                   VERBATIM
 class AVCaptureVideoPreviewLayer {
@@ -413,6 +450,8 @@ class AVCaptureDevice {
 }
 ```
 
+Camera apps that fake rotation by spinning each control individually: the DTS summary says to adopt "real orientation support rather than a faked rotation trick" — the outer display rotates like any iPhone, the inner one ignores your supported orientations, so lay out by size class and let the direction coordinator follow the camera.
+
 ### Rotation
 
 Adopt `AVCaptureDevice.RotationCoordinator` (EXISTING(iOS 17)); on Duo "the angle also changes as your app moves between the two displays", and a coordinator reports angles **for the device you created it with** — so **create a new one each time you switch cameras** (article). **After adopting it, disable camera sensor orientation compensation** — it is enabled on all iPhone Duo front cameras and costs performance. `isCameraSensorOrientationCompensationEnabled` — EXISTING(iOS 26, verified on `AVCapturePhotoOutput`).
@@ -427,6 +466,10 @@ class AVCapturePhotoOutput: AVCaptureOutput {
 }
 ```
 
+### ARKit
+
+Folding "doesn't pause or interrupt the ARSession. With ARWorldTrackingConfiguration, tracking just keeps going. With ARFaceTrackingConfiguration, ARKit switches between the front cameras automatically" ([847767](https://developer.apple.com/forums/thread/847767), Vision Pro Engineer). "An ARSession counts as an active capture session, so you can use CameraCaptureAccessory, and with it both screens, while ARKit runs. What this isn't is a full AR experience on two screens" — the AR view is for the person facing the main display, and the outer display becomes "an extra screen for a second person in front of the rear camera, rather than a second AR view" ([847744](https://developer.apple.com/forums/thread/847744)). Do not start your own `AVCaptureSession` beside ARKit: "the second one you start will steal from the first and interrupt it" (same thread, Media Engineer).
+
 ### Camera checklist
 
 1. Virtual front camera enough? (no depth, ≤ 1080p60) → keep discovery by `.front`, done. It is a virtual device: `isVirtualDevice == true`, `activePrimaryConstituent` tells you which physical camera streams.
@@ -436,25 +479,28 @@ class AVCapturePhotoOutput: AVCaptureOutput {
 5. Rotation coordinator + `isCameraSensorOrientationCompensationEnabled = false`.
 6. Optional: `CameraCaptureAccessory` for the outer display (own view, own coordinator).
 7. Test: open/close mid-session, Split View, both poses with the accessory enabled and disabled.
+8. Frame processing: expect a timestamp jump and dropped frames when the virtual front camera switches; re-read intrinsics; `alwaysDiscardsLateVideoFrames = true` for continuous analysis.
+9. Camera availability comes from the direction coordinator, never from the hinge state; the inner camera does not exist while the device is closed.
 
 ## Symbol status table
 
 | Symbol | Status |
 |---|---|
-| `.onHingeChange { previous, context in }`, `context.hinge`, `hinge.status == .partiallyOpen`, `hinge.angle: Angle` | VERBATIM · SDK(27.1 β1) |
-| `DeviceHinge` / `DeviceHingeContext` (SwiftUICore); `.closed`, `.partiallyOpen`, `.fullyOpen` (`UIHingeStatus` adds `.unknown`) | SDK(27.1 β1) — was PROSE |
-| `UIHingeInteraction(updateHandler:)`, `.isEnabled`, `UIHingeInteraction.Update.hinge`, `UIHinge` (`status`, `angle`) | SDK(27.1 β1) — was PROSE |
-| `.sceneAccessory(content:)` (`SceneAccessoryContent`), `.onAvailabilityChange(perform:)` | VERBATIM · EXISTING(iOS 27.0) · SDK(27.1 β1) |
-| `CameraCaptureAccessory { }`, `CameraCaptureAccessory(isEnabled:content:)` — **SwiftUI** (`SceneAccessoryContent`), not AVFoundation | VERBATIM · SDK(27.1 β1) |
-| `UISceneAccessory.cameraCapture(sceneConfiguration:)` / `(sceneConfiguration:userInfo:)`, `registerSceneAccessory(_:)` → `UISceneAccessoryRegistration` (`isAvailable`, `isEnabled`), `unregisterSceneAccessory(_:)`, `windowCameraCaptureAccessory` role, `connectionOptions.sceneAccessoryUserInfo` | VERBATIM (article) · SDK(27.1 β1) |
+| `.onHingeChange { previous, context in }`, `context.hinge`, `hinge.status == .partiallyOpen`, `hinge.angle: Angle` | VERBATIM · SDK(27.1) |
+| `DeviceHinge` / `DeviceHingeContext` (SwiftUICore); `.closed`, `.partiallyOpen`, `.fullyOpen` (`UIHingeStatus` adds `.unknown`) | SDK(27.1) — was PROSE |
+| `UIHingeInteraction(updateHandler:)`, `.isEnabled`, `UIHingeInteraction.Update.hinge`, `UIHinge` (`status`, `angle`) | SDK(27.1) — was PROSE |
+| `.sceneAccessory(content:)` (`SceneAccessoryContent`), `.onAvailabilityChange(perform:)` | VERBATIM · EXISTING(iOS 27.0) · SDK(27.1) |
+| `CameraCaptureAccessory { }`, `CameraCaptureAccessory(isEnabled:content:)` — **SwiftUI** (`SceneAccessoryContent`), not AVFoundation | VERBATIM · SDK(27.1) |
+| `UISceneAccessory.cameraCapture(sceneConfiguration:)` / `(sceneConfiguration:userInfo:)`, `registerSceneAccessory(_:)` → `UISceneAccessoryRegistration` (`isAvailable`, `isEnabled`), `unregisterSceneAccessory(_:)`, `windowCameraCaptureAccessory` role, `connectionOptions.sceneAccessoryUserInfo` | VERBATIM (article) · SDK(27.1) |
 | `UIWindowScene.ActivationAction` | EXISTING(iOS 15, verified); talk prose "UIWindowSceneActivation" |
 | `UISceneSessionActivationRequest`, `activateSceneSession(for:errorHandler:)` | EXISTING(iOS 17) |
-| `.builtInOuterUltraWideCamera`, `.builtInInnerUltraWideCamera` | VERBATIM · SDK(27.1 β1, `API_AVAILABLE(ios(27.1))`) |
-| `AVCaptureDeviceDirectionCoordinator(view:deviceTypes:changeHandler:)`, `.deviceDirections` — **AVKit** | VERBATIM · SDK(27.1 β1, `API_AVAILABLE(ios(27.1), macCatalyst(27.1))`) |
-| `AVCaptureDeviceDirectionMap` with `forwardFacingDeviceDescriptors` / `backwardFacingDeviceDescriptors` | VERBATIM (article) · SDK(27.1 β1) |
-| `AVCaptureDeviceDescriptor` — `deviceType`, `mediaTypes`, `position`, `uniqueID`, `localizedName`; `Sendable` | VERBATIM (article) · SDK(27.1 β1) — was PROSE |
+| `.builtInOuterUltraWideCamera`, `.builtInInnerUltraWideCamera` | VERBATIM · SDK(27.1, `API_AVAILABLE(ios(27.1))`) |
+| `AVCaptureDeviceDirectionCoordinator(view:deviceTypes:changeHandler:)`, `.deviceDirections` — **AVKit** | VERBATIM · SDK(27.1, `API_AVAILABLE(ios(27.1), macCatalyst(27.1))`) |
+| `AVCaptureDeviceDirectionMap` with `forwardFacingDeviceDescriptors` / `backwardFacingDeviceDescriptors` | VERBATIM (article) · SDK(27.1) |
+| `AVCaptureDeviceDescriptor` — `deviceType`, `mediaTypes`, `position`, `uniqueID`, `localizedName`; `Sendable` | VERBATIM (article) · SDK(27.1) — was PROSE |
 | `AVCaptureDevice.isVirtualDevice`, `.activePrimaryConstituent` | EXISTING |
 | `AVCaptureDevice.dynamicAspectRatio`, `setDynamicAspectRatio(_:completionHandler:)`, `supportedDynamicAspectRatios`, `AVCaptureDevice.AspectRatio` | EXISTING(iOS 26, verified) |
 | `AVCaptureVideoPreviewLayer.videoGravity`, `AVCaptureDevice.RotationCoordinator` | EXISTING(iOS 17) — one per capture device, recreate on every camera switch |
 | `AVCapturePhotoOutput.isCameraSensorOrientationCompensationEnabled` | EXISTING(iOS 26, verified) |
+| `CMMotionManager.deviceMotionBody` (`CMBodyIdentifiable`), `CLLocationManager.headingBody` (`CLBodyIdentifiable`); `UIView` conforms to both | SDK(27.1), API iOS 27.0; `headingOrientation` deprecated in 27.0 |
 | `AVCaptureDeviceCoordinator` | CAPTION — wrong, never use |

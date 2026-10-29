@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Adapt, audit and design-review iOS apps for **iPhone Duo** — Apple's foldable iPhone (announced
-2026-09-09, ships on iOS 27.1). The Duo APIs are newer than any current model's training data, so an
+2026-09-09, shipped 2026-10-23 on iOS 27.1). The Duo APIs are newer than any current model's training data, so an
 agent asked about them invents plausible symbol names. This plugin replaces that guesswork with
 references that carry a provenance tag on every symbol.
 
@@ -13,8 +13,8 @@ Three components:
 | Component | Kind | What it does |
 |---|---|---|
 | `iphone-duo` | skill | Adapting Swift apps (UIKit + SwiftUI): size classes, vertical bars, reserved regions, `ArrangementView`, hinge, multiple scenes, dual front cameras, Split View, adaptive layout, state continuity. 8 reference files + Apple's 13-step migration order. |
-| Readiness audit | shared workflow + Claude agent | Runs a 23-category grep checklist and returns a severity-ranked report with `file:line` and a fix pointer per finding. Claude Code uses `iphone-duo-audit`; Codex and skills-only installs run the same workflow through `iphone-duo`. Never edits source code. |
-| `hig-design-review` | skill | Reviews Figma or Sketch mockups against the Human Interface Guidelines *before* implementation — general iOS rules plus the Duo rules D1–D29, with live HIG citations and a Ready / Not ready verdict. |
+| Readiness audit | shared workflow + Claude agent | Runs a 26-category grep checklist and returns a severity-ranked report with `file:line` and a fix pointer per finding. Claude Code uses `iphone-duo-audit`; Codex and skills-only installs run the same workflow through `iphone-duo`. Never edits source code. |
+| `hig-design-review` | skill | Reviews Figma or Sketch mockups against the Human Interface Guidelines *before* implementation — general iOS rules plus the Duo rules D1–D32, with live HIG citations and a Ready / Not ready verdict. |
 
 ## Requirements
 
@@ -23,7 +23,7 @@ Three components:
   CLI in Claude Code, Cursor, Codex and other supported hosts — see option 1.
 - **macOS with Xcode Command Line Tools** for the toolchain gate (`xcodebuild -version`,
   `xcrun --sdk iphoneos --show-sdk-version`). The grep audit itself runs anywhere; the toolchain gate
-  is what decides whether iOS 27.1 APIs may be written yet. **Xcode 27.1** (beta since 2026-09-18) is
+  is what decides whether iOS 27.1 APIs may be written yet. **Xcode 27.1** (released 2026-10-15; 27.2 RC also works) is
   what ships the iOS 27.1 SDK, the iPhone Duo simulator and Apple's App Resizability agent skill;
   without it the skills do the resizability work and defer the Duo-only APIs.
 - **`jq`** — reading Figma JSON and SDK dumps without loading them into context.
@@ -192,16 +192,16 @@ scripts/validate-plugin.py   package and version checks used by CI
 
 | Reference | Read when |
 |---|---|
-| `iphone-duo/references/device-and-platform.md` | Display and size-class facts, SDK tiers, Split View, `UIRequiresFullScreen`, timeline, App Store, the unverified list |
+| `iphone-duo/references/device-and-platform.md` | Display and size-class facts, SDK tiers, Split View, `UIRequiresFullScreen`, StandBy and widgets, timeline, App Store badge and April 2027 requirements, the unverified list |
 | `iphone-duo/references/audit-workflow.md` | Shared read-only audit procedure, scope, scratch output, classification and report delivery |
-| `iphone-duo/references/audit-checklist.md` | Running or interpreting the audit: 23 grep categories, severities, report template, Apple's 13 migration steps |
+| `iphone-duo/references/audit-checklist.md` | Running or interpreting the audit: 26 grep categories, severities, report template, Apple's 13 migration steps |
 | `iphone-duo/references/layout-size-classes-safe-area.md` | Size classes, replacing `UIScreen.main`, width caches, state continuity, scene lifecycle, windows, safe area, the adaptive toolbox |
 | `iphone-duo/references/bars-and-toolbars.md` | Vertical bars: opt-in, order, axis behavior, badges, edge detection, compression, overflow, priority, opt-out |
 | `iphone-duo/references/arrangements-and-reserved-regions.md` | Reserved regions, displacement, `ArrangementView` / `UIArrangementViewController`, split vs overlay, anti-patterns |
-| `iphone-duo/references/hinge-scenes-camera.md` | `onHingeChange`, multiple scenes, scene accessories, virtual front camera, direction and rotation coordinators |
+| `iphone-duo/references/hinge-scenes-camera.md` | `onHingeChange`, multiple scenes, scene accessories, virtual front camera, direction and rotation coordinators, motion and heading per display |
 | `iphone-duo/references/testing-and-sources.md` | Toolchain gate, Device Hub poses, SDK symbol verification, freshness checks, source URLs |
 | `hig-design-review/references/intake-figma-sketch.md` | Pulling frames, sizes, renders and comments out of Figma via MCP; Sketch exports; size-class mapping |
-| `hig-design-review/references/duo-design-rules.md` | The Duo design checklist D1–D29 with a source per rule |
+| `hig-design-review/references/duo-design-rules.md` | The Duo design checklist D1–D32 with a source per rule |
 | `hig-design-review/references/hig-general-checklist.md` | General iOS checks per area + how to fetch and cite the live HIG JSON pages |
 | `hig-design-review/references/report-template.md` | Report shape, severity rows, verdict block, Figma comment format |
 
@@ -216,23 +216,27 @@ it has been confirmed against a real SDK:
 | **PROSE** | Named in Apple's text but never written as code — the references say so where one is still unconfirmed |
 | **CAPTION** | Seen only in auto-generated captions — never use; the references list the known mis-spellings |
 | **EXISTING(iOS xx)** | A pre-Duo API that already ships — gate it at its own availability, not at 27.1 |
-| **SDK(27.1 β1)** | Found in the shipping iOS 27.1 SDK with an availability annotation |
+| **SDK(27.1)** | Found in the released iOS 27.1 SDK with an availability annotation |
 
-Research date **2026-09-10**; **SDK-verified 2026-09-21** against the iOS 27.1 SDK in **Xcode 27.1
-beta 1** (27A9269). Every Duo symbol in the references now carries a real annotation. One capability
-the HIG describes — collapsing an overlay arrangement's secondary view — has no API in that SDK, and
-the references say so instead of guessing a name.
+Research date **2026-09-10**; first SDK check 2026-09-21 against **Xcode 27.1 beta 1** (27A9269);
+**re-verified 2026-10-28** against the released **Xcode 27.1** (27A9275) and **Xcode 27.2 RC** (27B48).
+Every Duo declaration is unchanged from beta 1, and the documentation pages no longer say "beta". One
+capability the HIG describes — collapsing an overlay arrangement's secondary view — still has no API,
+and the references say so instead of guessing a name.
 
 Also folded in on that date: Apple's developer article
 "[Preparing your app for iPhone Duo](https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo)",
 the camera articles for AVKit and AVFoundation, the September 2026 `documentation/updates` sections,
-the Xcode 27.1 beta release notes, and both iPhone Duo Group Labs (Meet with Apple 285 and 286).
-Labs are transcribed from Apple's own captions and are cited for guidance, never for API spellings.
+the Xcode 27.1 beta release notes, and the first two iPhone Duo Group Labs (Meet with Apple 285 and
+286). The third, 287 (2026-10-13), followed on 2026-10-20, together with the bar-minimization API it
+pointed to, typechecked against the same SDK. On 2026-10-28: the fourth lab (288), Apple's DTS summary
+of the labs on the forums, the three 2026-09-23 forum Q&As, the "Three steps to make your app shine on
+iPhone Duo" page, the Xcode 27.1 / 27.2 RC and iOS 27.2 release notes, TN3192, and the App Store news
+of 2026-10-05 (the "optimized for iPhone Duo" badge and the April 2027 screenshot requirement). Labs are
+transcribed from Apple's own captions and are cited for guidance, never for API spellings.
 
-Re-check after **2026-10-23** (ship date), or sooner if an iOS 27.1 RC appears: the availability
-annotations still read `iOS 27.1 beta`, so re-run the SDK symbol grep in
-`skills/iphone-duo/references/testing-and-sources.md` §Verify symbols and retag. That file's
-§Freshness lists the machine-checkable signals.
+`skills/iphone-duo/references/testing-and-sources.md` §Freshness lists what is still open and the
+machine-checkable signals: new labs, the Xcode 27.2 release, silent HIG or article edits.
 
 The plugin has no executable runtime, bundled MCP servers or hooks. The host runs its instructions
 using your configured tools and permissions. Design review fetches live sources and can use your

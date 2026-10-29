@@ -7,6 +7,108 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.3.0] — 2026-10-29
+
+The first release after iPhone Duo shipped (2026-10-23). It folds in everything Apple published
+since 1.2.1: group labs 287 (2026-10-13) and 288 (2026-10-15), Apple's DTS summary of the labs on the
+forums, the three 2026-09-23 forum Q&As (134 threads, 78 with Apple answers), the "Three steps to make
+your app shine on iPhone Duo" page, the 2026-10-05 App Store news, TN3192, and the Xcode 27.1 / 27.2 RC
+and iOS 27.2 release notes. Every Duo symbol was re-verified against the released Xcode 27.1 (27A9275)
+and Xcode 27.2 RC (27B48). Lab timecodes are the captions' on the Apple Developer page; YouTube-based
+recaps run about two minutes later.
+
+### Added
+
+- **Hard rule 14 — Duo changes stay on Duo** (owner's rule). The iPad app and every other iPhone keep
+  exactly the layout and behavior they had; a split made for a sheet on Duo does not reach iPad in any
+  form. Size classes cannot scope a change to Duo, and `ArrangementView`, bar priorities, minimization
+  and bar-item icons act on every device, so Duo-only changes sit behind a latched hinge-presence gate
+  (`deviceHasHinge`, SwiftUI and UIKit code typechecked at deployment targets 27.1 and 17.0). Measured
+  on the Duo simulator: `UIHingeInteraction` and `onHingeChange` both deliver the initial state about
+  60 ms after the view appears. Tier 1 refactors must leave iPad and other iPhones pixel- and
+  flow-identical, proven with before/after snapshots on both. Hard rule 3 and the "write for the whole
+  lineup" advice changed to match.
+- **App Store** (`device-and-platform`): submitting Duo screenshots puts an "optimized for iPhone Duo"
+  badge on the product page; from April 2027 Duo screenshots are required for apps on the iOS 27.1 SDK
+  and every upload needs the iOS 27 SDK; app preview sizes; the App Store Connect preview tool.
+- **Bars that scroll away** (`bars-and-toolbars`): `toolbarMinimizationBehavior(_:for:)`,
+  `toolbarMinimizationRestoration(_:for:)`, `toolbarMinimizationSafeAreaAdjustment(_:for:)`,
+  `navigationItem.navigationBarMinimization` — all iOS 27.0, typechecked. Navigation bars scroll away on
+  Duo by default (lab 288); `.never` keeps them, `.onScrollUp` suits bottom-anchored content.
+- **Motion and heading per display** (`hinge-scenes-camera`): `CMMotionManager.deviceMotionBody` and
+  `CLLocationManager.headingBody` take a view (iOS 27.0), so attitude and heading follow the display the
+  UI is on; `headingOrientation` is deprecated in iOS 27.0.
+- **Scroll axis against the hinge** (`arrangements-and-reserved-regions`): Apple's own apps in a table
+  — what shifts off the fold (Messages, App Store Today) and what scrolls through it (carousels, lists
+  in the laptop pose, Preview's two-page mode). Arrangements nest; touches over the camera region are
+  suppressed; the order to reach for tools in, from standard containers down to the hinge.
+- **Layout** (`layout-size-classes-safe-area`): Apple's "Three steps" list — re-read size in
+  `layoutSubviews` / `viewDidLayoutSubviews` (not `viewIsAppearing`), regular width is not iPad, no
+  device-size comparisons, full-bleed media that loses content; never override size classes; default
+  `UIView` layout margins are zero on iOS 27.1+; scroll position kept by index path, and a semantic
+  anchor for custom text; tab bar or sidebar with Apple's examples (Music, TV, Mail, Phone, Health);
+  inspectors; what a fold does not do (`onAppear` does not fire again).
+- **RTL, search and side menus** (`bars-and-toolbars`): in right-to-left languages the list column sits
+  between the vertical bar and the detail; search stays at the bottom on the inner display;
+  `safeAreaBar(edge:)` with `toolbarVerticalEdge` for custom vertical bars; `UIView.LayoutRegion.bar(onEdge:)`
+  without `extent:` (iOS 27.2); the launch screen cannot follow a vertical-bar opt-out.
+- **Audit categories 24–26**: size-class overrides (HIGH), full-bleed media set to fill (LOW / manual),
+  motion and heading frames (LOW). Category 6 is MEDIUM now and catches `statusBarOrientation`;
+  category 12 checks for a launch screen (required for App Store submission with the iOS 27 SDK) and
+  `UIRequiresFullScreenIgnoredStartingWithVersion`; category 16 catches `bounds.height == 844`-style
+  comparisons. The checklist has 26 categories.
+- **Design rules D30–D32**: the navigation model stays recognisable between closed and open; scrolling
+  across the fold is fine and reads best perpendicular to it, while row-anchored elements such as chat
+  bubbles shift off it; search stays at the bottom on the inner display. The set is D1–D32.
+- StandBy and widgets (`systemExtraLargePortrait`, Live Activities on the vertical Dynamic Island), PiP
+  on the folded device, `UIRequiresFullScreen` deprecation (TN3192), Mac Catalyst build issue for
+  iOS 27.1 APIs, Xcode 27.1 / 27.2 RC simulator and Device Hub known issues, the 27.2 runtime
+  identifiers, reading the forums in a browser.
+- **From the forum Q&As** (each with the thread link): the inner camera's real capabilities (native
+  1080p at 30/60 fps, metadata output, long sessions, extra per-frame cleanup), what a virtual front
+  camera switch looks like to frame processing, multicam limits, ARKit with `CameraCaptureAccessory`,
+  camera availability from the direction coordinator; `ArrangementView` collapsing to the higher
+  `.layoutPriority` child; no automatic fold avoidance for collection views and Apple's default of not
+  moving scrollable grids; sheets moving to the leading edge when folded; a scene delegate per window;
+  scroll content passing under the vertical bar; custom-bar accessibility (long-press labels, Large
+  Content Viewer); hinge angle range not guaranteed; hinge-dependent games and App Review.
+
+### Changed
+
+- **SDK tags**: `SDK(27.1 β1)` is now `SDK(27.1)` — the released SDK matches beta 1 for every Duo
+  declaration, and the documentation pages dropped "beta".
+- **SDK tiers** follow Apple's "Three steps" page: an iOS 26 SDK app sits centered with empty space on
+  the open display and left of the status bar on the closed one.
+- **Unverified list**: Touch ID confirmed (specs page); Apple Pencil (USB-C) is supported without hover;
+  WebKit's Viewport Segments and Device Posture APIs exist as opt-in experimental features in iOS 27.1;
+  the extra-large widget is `systemExtraLargePortrait`; there is no system pose value.
+- **Testing**: asked about an XCUITest or `simctl` hook for the hinge state, Apple named none and asked
+  for Feedback naming the use case; a physical Duo is not needed for most testing.
+- **Rule 1 and rule 14 reconciled**: an existing `idiom == .pad` branch that keeps the iPad layout may
+  stay; converting it to a size class is allowed only when iPad and the other iPhones come out
+  unchanged (a Pro Max in landscape has a regular width). Audit category 5, migration step 4 and the
+  report's Opportunities now say which suggestions need the hinge gate. The UIKit gate sample latches
+  once per app from the window instead of per screen.
+- **D13** also allows immersive games and a regular-width-only opt-out where compact and regular
+  interfaces genuinely differ (Safari's tabs); **D16** sends sheets to the leading edge when folded.
+- **Freshness** rewritten for the shipped device: new baselines (page hashes, release-notes titles,
+  the next lab page) and what is still open.
+
+### Fixed
+
+- `device-and-platform` said Duo screenshots had no badge and no requirement — both now exist.
+- The SDK tier table described the closed-display behavior under "inner display".
+- `UIRequiresFullScreen` was described as "no Split View"; no Apple source says that, and Apple's forum
+  answer says no API prevents multitasking. It now reads "discrete resizing" only.
+- `devicectl device appResize` / `orientation` were listed as third-party and unverified; they ship in
+  Xcode 27.0–27.2 RC (resizable app sessions and simulated orientation on a device, not a fold).
+- An unrebuilt app was said to show "no reaction to any pose"; partially open, it shifts to one side.
+- D16 said sheets move to the trailing side in the book pose; Apple says they move to the leading edge.
+- The Figma intake pointed fold-avoidance candidates at D9 (bar order) instead of D14.
+- The lab-captions recipe built `…/subtitles/en//prog_index.m3u8`; the CDN answers that with a 302
+  and an S3 AccessDenied body, so no captions came back. It now joins the path correctly and fetches
+  the ~600 segments in parallel.
+
 ## [1.2.1] — 2026-10-13
 
 ### Added

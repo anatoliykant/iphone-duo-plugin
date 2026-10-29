@@ -28,7 +28,7 @@ xcodebuild -version | head -1; xcode-select -p; xcrun --sdk iphoneos --show-sdk-
 ls /Applications | grep -i xcode
 ```
 
-**Run the toolchain gate first** (`testing-and-sources.md` §Toolchain gate) and report its result as a warning at the top. It probes the SDK for `UIHingeInteraction.h` / `UIViewReservedRegion.h` rather than comparing versions — Xcode 27.2 beta shipped two days before 27.1 beta and has no Duo APIs, so a numeric test is wrong. No Duo SDK → every new-API recommendation (reserved regions, `ArrangementView`, hinge, vertical-bar API, dual cameras, scene accessories) goes into the report's **Pending iOS 27.1 SDK** section, not into fixes; the safe part (resizability, `UIScreen.main`, orientation/idiom, safe area, standard containers, scene lifecycle) is actionable on any SDK. Duo SDK present → drop the Pending section. Present but not active → name the Xcode and hand over `DEVELOPER_DIR=…`.
+**Run the toolchain gate first** (`testing-and-sources.md` §Toolchain gate) and report its result as a warning at the top. It probes the SDK for `UIHingeInteraction.h` / `UIViewReservedRegion.h` rather than comparing versions — Xcode 27.2 beta 1 shipped two days before 27.1 beta 1 with no Duo APIs (27.2 RC has them), so a numeric test is not reliable. No Duo SDK → every new-API recommendation (reserved regions, `ArrangementView`, hinge, vertical-bar API, dual cameras, scene accessories) goes into the report's **Pending iOS 27.1 SDK** section, not into fixes; the safe part (resizability, `UIScreen.main`, orientation/idiom, safe area, standard containers, scene lifecycle) is actionable on any SDK. Duo SDK present → drop the Pending section. Present but not active → name the Xcode and hand over `DEVELOPER_DIR=…`.
 
 ## Severity
 
@@ -87,15 +87,15 @@ G 'userInterfaceIdiom|isIPad\b|== \.pad|case \.pad'
 GM 'userInterfaceIdiom|UI_USER_INTERFACE_IDIOM'
 ```
 
-111461 2:34 — the best app layouts "avoid making assumptions about display sizes or device capabilities based on user interface idioms". The inner display is regular × regular **on a `.phone` idiom**. Each hit that drives layout (not analytics) → size classes. Fix → `layout-size-classes-safe-area.md` §Size classes. Regex behavior: hits mix layout branches with analytics, feature flags and asset naming — only the layout-driving ones are findings.
+111461 2:34 — the best app layouts "avoid making assumptions about display sizes or device capabilities based on user interface idioms". The inner display is regular × regular **on a `.phone` idiom**. Each hit that drives layout (not analytics) → size classes where iPad and the other iPhones come out unchanged; otherwise the existing iPad branch stays and the Duo path goes behind the hinge gate (owner's rule 14). Fix → `layout-size-classes-safe-area.md` §Size classes. Regex behavior: hits mix layout branches with analytics, feature flags and asset naming — only the layout-driving ones are findings.
 
-### 6 · Orientation for layout — LOW
+### 6 · Orientation for layout — MEDIUM
 
 ```bash
-G 'UIDevice\.current\.orientation|\.isLandscape|\.isPortrait|interfaceOrientation|supportedInterfaceOrientations|UIDeviceOrientation'
+G 'UIDevice\.current\.orientation|\.isLandscape|\.isPortrait|interfaceOrientation|statusBarOrientation|supportedInterfaceOrientations|UIDeviceOrientation'
 ```
 
-The inner display ignores `supportedInterfaceOrientations`; orientation is a preference. Layout branches on orientation → size classes. Regex behavior: 0 hits is a normal result.
+The inner display ignores `supportedInterfaceOrientations`; orientation is a preference. Apple's "Three steps" page names `UIDevice.current.orientation`, `statusBarOrientation` and `interfaceOrientation` "including `windowScene.effectiveGeometry.interfaceOrientation`" and says to "remove any layout logic that depends on them" — compare the width and height of the space you have instead. Layout branches on orientation → MEDIUM; `supportedInterfaceOrientations` declarations alone → INFO. Regex behavior: 0 hits is a normal result.
 
 ### 7 · Symmetric safe-area math — LOW / manual
 
@@ -157,16 +157,17 @@ G 'horizontalSizeClass|verticalSizeClass'
 for p in viewWillTransition traitCollectionDidChange registerForTraitChanges onGeometryChange GeometryReader containerRelativeFrame effectiveGeometry; do echo "$p $(G "$p" | wc -l)"; done
 ```
 
-Shows whether the app has *any* place to react to a resize. `registerForTraitChanges` used only for appearance/dark mode does not count as geometry handling — read the hits. Regex behavior: `GeometryReader` usually dominates the counts while the real resize hooks stay at 0 — a high total is not coverage.
+Shows whether the app has *any* place to react to a resize. `registerForTraitChanges` used only for appearance/dark mode does not count as geometry handling — read the hits. Neither do `onAppear` / `viewDidLoad` / `viewWillAppear`: opening or closing the device keeps the same views and view controllers and does not call them again (lab 287 41:25), so geometry read only there is stale after the first fold. Regex behavior: `GeometryReader` usually dominates the counts while the real resize hooks stay at 0 — a high total is not coverage.
 
 ### 12 · Info.plist and project settings — MEDIUM
 
 ```bash
-for f in */Info.plist; do echo "== $f"; /usr/libexec/PlistBuddy -c 'Print :UIRequiresFullScreen' -c 'Print :UISupportedInterfaceOrientations' -c 'Print :UIApplicationSupportsMultipleScenes' "$f" 2>&1 | tr '\n' ' '; echo; done
-grep -oE 'TARGETED_DEVICE_FAMILY = [^;]+;|IPHONEOS_DEPLOYMENT_TARGET = [^;]+;' *.xcodeproj/project.pbxproj | sort | uniq -c
+for f in */Info.plist; do echo "== $f"; /usr/libexec/PlistBuddy -c 'Print :UIRequiresFullScreen' -c 'Print :UIRequiresFullScreenIgnoredStartingWithVersion' -c 'Print :UISupportedInterfaceOrientations' -c 'Print :UIApplicationSupportsMultipleScenes' -c 'Print :UILaunchScreen' -c 'Print :UILaunchStoryboardName' "$f" 2>&1 | tr '\n' ' '; echo; done
+grep -oE 'TARGETED_DEVICE_FAMILY = [^;]+;|IPHONEOS_DEPLOYMENT_TARGET = [^;]+;|INFOPLIST_KEY_UILaunch[A-Za-z_]+ = [^;]+;|INFOPLIST_KEY_UIRequiresFullScreen = [^;]+;' *.xcodeproj/project.pbxproj | sort | uniq -c
 ```
 
-- `UIRequiresFullScreen = true` → **MEDIUM "product decision"**: discrete resizing (closed/open), no Split View, outer-display orientation lock honored. Do not recommend deleting it silently — present both options (`device-and-platform.md` §UIRequiresFullScreen).
+- `UIRequiresFullScreen = true` → **MEDIUM "product decision"**: discrete resizing (closed/open), outer-display orientation lock honored; it does not keep the app out of multitasking. Do not recommend deleting it silently — present both options (`device-and-platform.md` §UIRequiresFullScreen), and say that Apple calls the key deprecated and "will be ignored in a future release" (TN3192). `UIRequiresFullScreenIgnoredStartingWithVersion` set → INFO, the team has already planned its removal.
+- **No launch screen** — neither `UILaunchScreen` nor `UILaunchStoryboardName` in the plist, nor an `INFOPLIST_KEY_UILaunch…` build setting → **HIGH**: "Starting in iOS 27 and iPadOS 27, a launch screen is required for App Store submission" (TN3192, TN3208).
 - Portrait-only `UISupportedInterfaceOrientations` → INFO: ignored on the inner display anyway.
 - `UIApplicationSupportsMultipleScenes` absent → INFO (multi-window is opt-in; the Duo link is inferred, not Apple-stated).
 - `TARGETED_DEVICE_FAMILY = 1` (iPhone-only) → INFO: the app has never seen regular × regular.
@@ -199,11 +200,14 @@ G '\.frame\((width|maxWidth|minWidth):\s*[3-9][0-9]{2}' | grep -vE 'Tests/|Previ
 
 A fixed `width: 320` inside a ~313 pt Split View pane clips. `maxWidth:` is usually fine (cap, not floor) — report separately. Check for `#Preview` context in production files. Fix → `layout-size-classes-safe-area.md` §Fixed widths. Regex behavior: `#Preview` bodies inside production files survive the path filter and are a large share of the hits — check the enclosing context.
 
-### 16 · Device-width literals — LOW / manual
+### 16 · Device-size literals — LOW / manual
 
 ```bash
 G '\b(375|390|393|402|430)\b' | grep -vE 'Tests/|Preview|UITests'
+G '(bounds|frame|size|nativeBounds)\.(height|width)\s*(==|!=)\s*[0-9]{3,4}|\b(667|736|812|844|852|874|896|926|932|956)\b' | grep -vE 'Tests/|Preview|UITests'
 ```
+
+The second line is Apple's own example — "Comparisons such as `bounds.height == 844` or a list of known iPhone sizes won't match iPhone Duo" (Three steps page). An equality against a device height is a finding on sight; bare height numbers need reading.
 
 As a regex this is ~100 % false positives (ids, data, comments). Its value is finding **width-interpolation formulas** tuned to specific devices (coefficients "for 393/430" in comments). Report under Manual review with a one-line note. Regex behavior: ~100 % false positives; the one shape worth finding is a helper with device-tuned coefficients.
 
@@ -269,6 +273,31 @@ G '\b(313|466|626)\b' | grep -E 'Tests/' | wc -l      # 0 = the derived Duo widt
 
 Facts for the fix plan, not defects: no `readableContentGuide` and no numeric width caps in an app with long copy → "no readable-width caps anywhere"; render/snapshot tests at ≤ 2 distinct widths → "layouts rendered at ≤ 2 widths"; 0 hits for 313/466/626 → "derived Duo widths untested". Whether wide text actually stretches is **manual review only** (onboarding, settings, legal, articles). Regex behavior: `readableContentGuide` at 0 next to a high `maxWidth: .infinity` count is the signal to report; in every codebase audited so far the derived widths 313/466/626 appear in no test.
 
+### 24 · Size-class overrides — HIGH
+
+```bash
+G 'traitOverrides\.(horizontalSizeClass|verticalSizeClass)|setOverrideTraitCollection|overrideTraitCollection|environment\(\\\.(horizontal|vertical)SizeClass'
+GM 'setOverrideTraitCollection'
+```
+
+A forced size class keeps the fold from reaching that subtree — the DTS summary of the labs, on whether an override blocks the system's updates as the device folds: "Yes, it would very likely interfere." A screen-level override → HIGH; an override inside a preview or a test → not a finding. Fix → remove it and read the real trait (`layout-size-classes-safe-area.md` §Size classes). Regex behavior: 0 hits is the normal result; the SwiftUI `.environment(\.horizontalSizeClass, …)` form is the common one.
+
+### 25 · Full-bleed media set to fill — LOW / manual
+
+```bash
+G '\.scaleAspectFill|contentMode:\s*\.fill|\.scaledToFill\(\)|resizeAspectFill' | grep -vE 'Tests/|Preview'
+```
+
+Apple's "Three steps" page: "Hero images and video set to `.scaleAspectFill` or `.aspectRatio(contentMode: .fill)` can lose important content on wider displays." Only hero images, banners and video that fill a screen-wide container are candidates — thumbnails and avatars are not. Report under Manual review with file names. Fix → `layout-size-classes-safe-area.md` §Fixed widths (fit vs fill, focal point), behind the hinge gate when the change would alter other iPhones. Regex behavior: high hit counts, mostly small images — read the container.
+
+### 26 · Motion and heading relative to the display — LOW
+
+```bash
+G 'headingOrientation|startDeviceMotionUpdates|deviceMotion\b|CMMotionManager|CLHeading'
+```
+
+`CLLocationManager.headingOrientation` is deprecated in iOS 27.0 in favor of `headingBody`; device motion should set `deviceMotionBody` to the view so attitude follows the display the UI is on. `headingOrientation` hit → LOW; other hits → INFO (compass, level, AR, games). Fix → `hinge-scenes-camera.md` §Motion and heading. 0 hits → N/A. Regex behavior: 0 hits in most apps.
+
 ### Bonus · `UIDevice.current.*` inventory — INFO
 
 ```bash
@@ -297,19 +326,19 @@ G 'UIDevice\.current\.' | grep -oE 'UIDevice\.current\.\w+' | sort | uniq -c
 ## Low
 …
 
-## Info (facts that shape the plan, no defect: categories 8a appearance proxies, 11 change hooks, 12 project settings, 23 coverage signals, `UIDevice.current` inventory)
+## Info (facts that shape the plan, no defect: categories 8a appearance proxies, 11 change hooks, 12 project settings, 23 coverage signals, 26 sensor use, `UIDevice.current` inventory)
 …
 
 ## Opportunities (tiered — finish Tier 1 before proposing Tier 2/3)
-- Tier 1 universal (any SDK): sidebar via adaptive `TabView` / `UITabBarController` sidebar placement; `ViewThatFits` / `AnyLayout` for hand-rearranged pairs; adaptive, even grid columns; readable-width caps; regular-width screens that only stretch → expose hierarchy (manual — list files)
-- Tier 2 Duo-aware (iOS 27.1): `HStack`/`VStack` two-pane candidates → `ArrangementView` (list files); reserved regions for custom-positioned controls
+- Tier 1 universal: `ViewThatFits` / `AnyLayout` for hand-rearranged pairs; adaptive, even grid columns; readable-width caps; regular-width screens that only stretch → expose hierarchy (manual — list files); a sidebar on the inner display via `defaultTabBarPlacement(.sidebar)` / `sidebar.preferredPlacement` (iOS 27.0). Each one that would change iPad or another iPhone goes behind the hinge gate (owner's rule 14), which needs the iOS 27.1 SDK
+- Tier 2 Duo-aware (iOS 27.1): `HStack`/`VStack` two-pane candidates → `ArrangementView` behind the hinge gate, since it also splits on iPad and a Pro Max (list files); reserved regions for custom-positioned controls
 - Tier 3 Duo-exclusive (product decision): scene accessories if the app has a camera; hinge-driven effects
 
 ## Pending iOS 27.1 SDK
 - items that cannot be written on the current SDK (reserved regions, arrangements, bar axis API, hinge, dual cameras) — one line each, with the file that will need them
 
 ## Manual review (no severity)
-- category 7 safe-area hits · category 13 bar items · category 15 `#Preview` context · category 16 width formulas · category 21 column parity · category 22 branch reading · regular-width screens that only stretch
+- category 7 safe-area hits · category 13 bar items · category 15 `#Preview` context · category 16 size formulas · category 21 column parity · category 22 branch reading · category 25 fill-mode hero media · regular-width branches written for iPad only · regular-width screens that only stretch
 
 ## Not applicable
 - camera (0 capture code) · scene requests (0) · hinge (0) …
@@ -323,7 +352,7 @@ G 'UIDevice\.current\.' | grep -oE 'UIDevice\.current\.\w+' | sort | uniq -c
 1. Rebuild with the iOS 27.1 SDK (27.0 only extends left of the status bar; 27.1 reaches the edge and gives vertical bars).
 2. Remove `UIScreen.main` — `.scale` → `traitCollection.displayScale`; screen → `window?.windowScene?.screen`; bounds → scene/view bounds; register for `UITraitDisplayScale` changes and invalidate caches.
 3. Orientation checks → size classes.
-4. Idiom checks → size classes.
+4. Idiom checks → size classes, where iPad and the other iPhones come out unchanged; otherwise keep the iPad branch and gate the Duo path (owner's rule 14).
 5. Adopt the UIScene lifecycle (TN3187) — required to launch.
 6. Safe area / layout margins per edge; test in Split View.
 7. Remove fixed widths and width breakpoints.
@@ -331,7 +360,7 @@ G 'UIDevice\.current\.' | grep -oE 'UIDevice\.current\.\w+' | sort | uniq -c
 9. Audit centered layouts: two-column / displacement; standard containers first, `ArrangementView` for custom split/overlay, reserved regions for the highest-priority manually laid-out controls.
 10. Split View + multiple scenes: handle scene-request errors; new windows are inner-display only.
 11. Camera: virtual front camera vs direction coordinator; rotation coordinator then disable sensor orientation compensation; preview gravity/aspect.
-12. `UIRequiresFullScreen`: don't add it "for Duo"; keep only as a games escape hatch — product decision.
-13. Run Xcode 27.1's **App Resizability** agent skill (the ex-modernization skill, present only from 27.1; export it for other tools with `xcrun agent skills export --output-dir <path>`).
+12. `UIRequiresFullScreen`: don't add it "for Duo"; keep only as a games escape hatch — product decision. Apple calls the key deprecated (TN3192).
+13. Run Xcode 27.1's **App Resizability** agent skill (the ex-modernization skill, present only from 27.1; with Xcode 27.1 it "supports SwiftUI and iPhone Duo" per the DTS summary; export it for other tools with `xcrun agent skills export --output-dir <path>`). Apple's "Three steps" page: "The skill finds most issues, but not all of them." 
 
 Shorter mnemonic (external review, consistent with Apple): Resizability → Size classes → Standard containers → Safe areas → Reserved regions → Arrangements → Hinge (effects only).
