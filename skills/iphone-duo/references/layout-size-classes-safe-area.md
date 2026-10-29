@@ -32,11 +32,11 @@ traitCollection.verticalSizeClass
 Rules:
 - Branch on `horizontalSizeClass == .regular` to add hierarchy (second column, sidebar) — never to pick a "phone" or "tablet" layout by name.
 - **No pose flags.** Do not introduce `isDuo`, `isFolded`, `isBookPose`, `isInnerDisplay`, `isFoldable` or a device-model switch. Each is a hidden `UIScreen.main`. The one new gate allowed is hinge presence, and only to keep a change off iPad and other iPhones (§Scope); an existing iPad idiom branch may stay for the same reason.
-- Replace width buckets (`if width < 350 … else if width > 400`) with size classes plus intrinsic layout (`ViewThatFits`, `containerRelativeFrame`, Auto Layout priorities). Buckets tuned for 375–430 pt phones misfire at ~313 pt (Split View half) and ~626 pt (inner display, derived).
+- Replace width buckets (`if width < 350 … else if width > 400`) with size classes plus intrinsic layout (`ViewThatFits`, `containerRelativeFrame`, Auto Layout priorities). Buckets tuned for 375–430 pt phones misfire at ~334 pt (Split View half) and 669 pt (inner display, derived).
 - Replace `userInterfaceIdiom == .pad` layout branches with size classes or available space — where iPad and the other iPhones come out unchanged. Where they would not (a Pro Max in landscape has a regular width), leave the existing iPad branch and give the Duo its path through the hinge gate (§Scope). Keep idiom only for that and for non-layout concerns (analytics, feature flags).
 - **Regular width is not iPad.** Apple's "Three steps" page: "Code that shows an iPad-only layout when `horizontalSizeClass == .regular`, or that assumes iPhone is always compact, will now run that layout on iPhone too." With iPhone Duo and resizable iPhone Mirroring "an iPhone app can have any combination of size classes", and "On the inner display, your app should look like a natural extension of its iPad layout." Read every regular-width branch for iPad-only assumptions (popover anchors, iPad-only features, copy that says "iPad"). Under §Scope the iPad layout reaches the Duo through the hinge gate: the existing iPad branch stays as it was, and a second condition, `deviceHasHinge && horizontalSizeClass == .regular`, lets the Duo's inner display use the same layout — so a Pro Max in landscape keeps its current one.
 - **Never override size classes.** Forcing `horizontalSizeClass` through `traitOverrides`, `setOverrideTraitCollection` or `.environment(\.horizontalSizeClass, …)` keeps the fold from reaching that subtree — the DTS summary of the labs: "Yes, it would very likely interfere. Use automatic trait tracking … rather than overriding them." 
-- Open ≠ regular-only: every regular layout must fall back to a compact one (a Split View half) without losing state — design the whole range ~313 → 466 → 626 pt (derived), not two endpoints.
+- Open ≠ regular-only: every regular layout must fall back to a compact one (a Split View half) without losing state — design the whole range ~334 → 466 → 669 pt, not two endpoints.
 
 ## Scope — Duo changes stay on Duo
 
@@ -298,17 +298,57 @@ let width = view.bounds.inset(by: view.safeAreaInsets).width
 
 Rules:
 - Interactive foreground inside the safe area; artwork/background past it.
-- Auto Layout: pin to `safeAreaLayoutGuide` / `layoutMarginsGuide` per edge; never mirror one inset to the other side.
-- SwiftUI: rely on default safe-area behavior; `GeometryProxy.safeAreaInsets` when you must compute (HIG, PROSE). `.ignoresSafeArea()` only on backgrounds.
+- Auto Layout: pin to `safeAreaLayoutGuide` / `layoutMarginsGuide` per edge; never mirror one inset to the other side. Beside a vertical bar the margin is 0 — the table below.
+- SwiftUI: rely on default safe-area behavior; `GeometryProxy.safeAreaInsets` when you must compute (HIG, PROSE). `.ignoresSafeArea()` only on backgrounds. For the system margins on top of the safe area, `contentMargins(for: .container)` (iOS 27.1) — §System margins in SwiftUI.
 - Outer display: most content needs an offset — the safe area provides it. Immersive non-scrolling interfaces (Calculator) may center on the full display; mixing is fine (full-bleed background, inset scrolling content) — 111466 (PROSE).
 - Scrolling content may run under the vertical bar. Asked whether horizontally scrolling content passing under the open display's vertical tab bar is a bug, Apple: "Yes, this is expected. Don't clip your content manually. The right side of your view will have a safe area inset which will automatically become a content inset on the scroll view, allowing all the content in the scroll view to be reachable" ([847821](https://developer.apple.com/forums/thread/847821)).
 - Safe areas do not cover the camera or the fold. For a custom bar or a custom bottom sheet the DTS summary is explicit: "Relying only on standard safeAreaInsets is insufficient for handling dynamic folding regions" — query reserved regions and the bar edge (`arrangements-and-reserved-regions.md`, `bars-and-toolbars.md`).
+
+### System margins in SwiftUI — `contentMargins(for: .container)`
+
+SwiftUI had no counterpart of UIKit's `layoutMarginsGuide`, so code lined content up with the navigation title by guessing — `.padding(.horizontal, 16)` — and on a closed Duo the guess is wrong on both sides. iOS 27.1 adds `ContentMarginGuide` **SDK(27.1)** (SwiftUICore, `@available(anyAppleOS 27.1, *)`). Apple's documentation of `.container`: "This guide vends the system layout margins, which range from 16 to 20 points on iPhone and are larger on platforms like tvOS. On iPhone Duo, the margin can also be asymmetric, applying different values on each side of the device when next to a vertical bar. Apply or read the guide instead of writing these values into your layout."
+
+```swift
+// SDK(27.1), typechecked 2026-10-29 at deployment targets 27.1 and 17.0 (inside `if #available(iOS 27.1, *)`)
+// Apply: inset by the margins of the container the view is in
+ScrollView {
+    ArticleBody()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentMargins(for: .container, edges: .horizontal)
+}
+
+// Read: the numbers — a carousel that scrolls edge to edge but rests at the margin
+GeometryReader { proxy in
+    ScrollView(.horizontal) { CardRow() }
+        .contentMargins(.horizontal,
+                        proxy.contentMargins(for: .container, edges: .horizontal),
+                        for: .scrollContent)
+}
+```
+
+- `View.contentMargins(for:edges:alignment:)` and `GeometryProxy.contentMargins(for:edges:) -> EdgeInsets` ("Edges not in the set have a value of zero"). Not the iOS 17 `contentMargins(_:_:for:)` **EXISTING(iOS 17)**, which takes a `ContentMarginPlacement` (`.scrollContent`, `.scrollIndicators`) and a number you choose.
+- "The value depends on the platform, the size of the container, and the position of the view within it" — read it where you use it. Inside an `ArrangementView` split each pane gets the margin only on its outer edges: in the book pose the leading pane reads 20 / 0 and the trailing pane, next to the vertical bar, 0 / 0.
+- The SwiftUI value excludes the safe area; UIKit's `layoutMargins` include it.
+
+Measured 2026-10-29 on the Duo simulator (Xcode 27.2 RC; the iOS 27.1 runtime reports the same), leading / trailing, for a full-width view under the navigation title:
+
+| Pose | Safe area | SwiftUI `contentMargins(for: .container)` | UIKit view controller `view.layoutMargins` |
+|---|---|---|---|
+| Closed, portrait (bar trailing) | 0 / 84 | 20 / 0 | 20 / 84 |
+| Closed, landscape (the bar follows the hardware — leading or trailing by rotation) | 84 / 0 | 0 / 20 | 84 / 20 |
+| Open, portrait (horizontal bars) | 0 / 0 | 20 / 20 | 20 / 20 |
+| Open, landscape (bar trailing) | 0 / 84 | 20 / 0 | 20 / 84 |
+| iPad Pro 13-inch, portrait (iOS 27.2) | 0 / 0 | 20 / 20 | 20 / 20 |
+
+The margin beside a vertical bar is **0**: the bar is in the safe area, and the guide adds nothing on that side. A fixed `.padding(.horizontal, 16)` therefore sits 4 pt short of the title on the open side and 16 pt too far from the bar on the other.
+
+**Rule 14.** Swapping `.padding(.horizontal, 16)` for the guide also moves content on every device whose margin is not 16 — iPad gets 20 (measured above), and Apple's range for iPhone is "16 to 20 points". To leave iPad and the other iPhones as they were, make the swap behind `deviceHasHinge` (§Scope) and keep the old padding everywhere else.
 
 ### Default layout margins are zero on iPhone Duo
 
 iOS 27.2 release notes (UIKit, 186294594): "On iOS 27.1 and later, the default layout margins for a `UIView` are zero. A view controller continues to provide its view with `systemMinimumLayoutMargins`, which vary depending on the presentation context. To inherit these margins in a subview of the view controller's view, set its `preservesSuperviewLayoutMargins` property to `true`."
 
-The note says "iOS 27.1 and later", but measured 2026-10-29 with Xcode 27.2 RC (an app built with the iOS 27.2 SDK, deployment target 27.1) only iPhone Duo shows it: on the Duo runtime (24B91014) a fresh `UIView`, a custom view in the window and its subview all report zero margins; on iPhone 18 Pro Max and iPad Pro 13-inch with iOS 27.2 (24B114) the same views still report 8 pt. Simulator only — re-check on hardware before relying on it.
+The note says "iOS 27.1 and later", but measured 2026-10-29 with Xcode 27.2 RC (an app built with the iOS 27.2 SDK, deployment target 27.1) only iPhone Duo shows it: on the Duo runtime (24B91014, and the iOS 27.1 Duo runtime 24A94425 alike) a fresh `UIView`, a custom view in the window and its subview all report zero margins; on iPhone 18 Pro Max and iPad Pro 13-inch with iOS 27.2 (24B114) the same views still report 8 pt. Simulator only — re-check on hardware before relying on it.
 
 A custom `UIView` that pinned content to `layoutMarginsGuide` and relied on the old 8 pt default draws edge to edge on Duo. If the spacing was intended, set it explicitly (`directionalLayoutMargins = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)`, or `preservesSuperviewLayoutMargins = true` inside a view controller's view). Setting 8 pt is pixel-identical on iPad and the other iPhones, which still get 8 pt — confirm with before/after screenshots (§Scope).
 
@@ -380,11 +420,11 @@ Replace → with:
 - `let columns = isDuo ? 3 : 1` → adaptive columns (note below).
 - `if UIDevice.current.userInterfaceIdiom == .pad` → `horizontalSizeClass == .regular` — only where iPad and the other iPhones look the same afterwards; otherwise §Scope.
 
-Column count: never hard-code it (breaks at ~313 and ~626 pt). Compact width: let `.adaptive(minimum:maximum:)` decide. Regular width: `.adaptive` cannot promise the **even** count the HIG asks for — compute `n = max(2, Int(width / minItem) / 2 * 2)` in `onGeometryChange` and use `Array(repeating: GridItem(.flexible()), count: n)`; on 27.1 apply the parity rule only where a fold can appear (`reservedRegions(kind: .division, options: .includeInactive)` non-empty).
+Column count: never hard-code it (breaks at ~334 and 669 pt). Compact width: let `.adaptive(minimum:maximum:)` decide. Regular width: `.adaptive` cannot promise the **even** count the HIG asks for — compute `n = max(2, Int(width / minItem) / 2 * 2)` in `onGeometryChange` and use `Array(repeating: GridItem(.flexible()), count: n)`; on 27.1 apply the parity rule only where a fold can appear (`reservedRegions(kind: .division, options: .includeInactive)` non-empty).
 
 ## Fixed widths and device literals
 
-- `.frame(width: 320)` / `widthAnchor.constraint(equalToConstant: 340)` clip in a ~313 pt Split View half and float in a ~626 pt inner display. Use `maxWidth:` caps, `containerRelativeFrame`, or size-class-driven columns.
+- `.frame(width: 320)` / `widthAnchor.constraint(equalToConstant: 340)` clip in a ~334 pt Split View half and float in a 669 pt inner display. Use `maxWidth:` caps, `containerRelativeFrame`, or size-class-driven columns.
 - Coefficients "tuned for 393/430 pt" in coordinate-conversion or scaling helpers are hidden device assumptions — express them relative to the actual container.
 - **Exact device sizes.** Apple's "Three steps" page: "Comparisons such as `bounds.height == 844` or a list of known iPhone sizes won't match iPhone Duo." Heights are as dangerous as widths.
 - **Full-bleed media.** Same page: "Hero images and video set to `.scaleAspectFill` or `.aspectRatio(contentMode: .fill)` can lose important content on wider displays. Use the current size classes or aspect ratio to choose between fill and fit, or set a focal point." On a Pro Max the same image may look right today — switch fill to fit only where the crop actually loses content, and keep that switch behind the hinge gate when it would change other iPhones (§Scope).
@@ -408,7 +448,7 @@ VoiceOver runs on both displays at once — a first — so an app that already l
 
 ## Per-screen checklist (UIKit + SwiftUI)
 
-1. Works across a continuous range of widths (~313 → 466 → 626 pt, derived), not at two devices?
+1. Works across a continuous range of widths (~334 → 466 → 669 pt), not at two devices?
 2. Navigation switched by hand between a "phone" and a "tablet" tree? → `NavigationSplitView` / adaptive `TabView` / `UISplitViewController`.
 3. Fixed widths, width literals, `UIScreen.main`, idiom or orientation branches? → §Size classes, §Replace `UIScreen.main`.
 4. Does the regular-width layout only stretch? → add hierarchy (sidebar, detail, inspector, more columns); cap readable text — behind the hinge gate wherever iPad or another iPhone would change (§Scope).
@@ -418,7 +458,7 @@ VoiceOver runs on both displays at once — a first — so an app that already l
 8. Does state survive a resize mid-session (navigation, scroll, selection, text, playback)? Is geometry read only in `onAppear` / `viewWillAppear` / `viewIsAppearing`, which do not fire on a fold? Custom text rendering re-anchored semantically, not by Y offset? → §State survives the fold.
 9. Any hinge-angle or "second display" logic? → hinge only for physical interaction; outer display only via `CameraCaptureAccessory` (`hinge-scenes-camera.md`).
 10. Size classes overridden anywhere (`traitOverrides`, `setOverrideTraitCollection`, `.environment(\.horizontalSizeClass, …)`)? → remove; the fold cannot reach that subtree (§Size classes).
-11. Hero image or video set to fill? Custom views relying on the old 8 pt default margins? → §Fixed widths, §Default layout margins.
+11. Hero image or video set to fill? Custom views relying on the old 8 pt default margins? SwiftUI padding hard-coded to line up with the title (`.padding(.horizontal, 16)`)? → §Fixed widths, §Default layout margins, §System margins in SwiftUI.
 
 ## HIG summary — do / don't (designing-for-iphone-duo)
 

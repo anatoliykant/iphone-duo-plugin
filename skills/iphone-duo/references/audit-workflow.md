@@ -32,18 +32,23 @@ ls */Info.plist; ls *.xcodeproj/project.pbxproj; ls Package.swift */Package.swif
 find . -name '*.swift' -not -path '*/Pods/*' -not -path '*/.build/*' | wc -l
 find . \( -name '*.m' -o -name '*.h' \) -not -path '*/Pods/*' | wc -l     # >0 → run the ObjC lines of each category too
 ls -d */ | head -30                                                          # spot vendored third-party dirs — report their hits separately
-# Capability probe — NOT a version compare. Xcode 27.2 beta 1 predated 27.1 beta 1 and had no Duo APIs.
+# Capability probe first (Xcode 27.2 beta 1 predated 27.1 beta 1 and had no Duo APIs), then the required version: 27.2 or later.
 duo_sdk() { local h="$1/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/UIKit.framework/Headers"
             [ -f "$h/UIHingeInteraction.h" ] && [ -f "$h/UIViewReservedRegion.h" ]; }
-ACTIVE="${DEVELOPER_DIR:-$(xcode-select -p)}"; duo_sdk "$ACTIVE" && echo "Duo SDK: active" || echo "Duo SDK: MISSING from the active toolchain"
-{ ls -d /Applications/Xcode*.app 2>/dev/null; mdfind "kMDItemCFBundleIdentifier == 'com.apple.dt.Xcode'" 2>/dev/null; } | sort -u | while read -r a; do
-  duo_sdk "$a/Contents/Developer" && echo "  has Duo APIs: $a"; done
+xc_272() { local v; v=$(defaults read "$1/Contents/version" CFBundleShortVersionString 2>/dev/null)
+           awk -v v="$v" 'BEGIN { split(v, a, "."); exit !(a[1] > 27 || (a[1] == 27 && a[2] >= 2)) }'; }
+ACTIVE="${DEVELOPER_DIR:-$(xcode-select -p)}"
+duo_sdk "$ACTIVE" && echo "Duo SDK: active" || echo "Duo SDK: MISSING from the active toolchain"
+xc_272 "${ACTIVE%/Contents/Developer}" && echo "Xcode 27.2+: active" || echo "Xcode 27.2+: NOT active (27.1 is unsupported)"
+{ find /Applications -maxdepth 1 -name 'Xcode*.app' 2>/dev/null; mdfind "kMDItemCFBundleIdentifier == 'com.apple.dt.Xcode'" 2>/dev/null; } | sort -u | while read -r a; do
+  duo_sdk "$a/Contents/Developer" && xc_272 "$a" && echo "  Xcode 27.2+ with Duo APIs: $a"; done
+xcrun simctl list runtimes | grep -E 'SimRuntime\.iOS-(27-[2-9]|2[89]-)' || echo "no iOS 27.2+ simulator runtime"
 xcodebuild -version | head -1; xcrun --sdk iphoneos --show-sdk-version
 ```
 
 Record the file counts (production vs `Tests/|UITests/`), vendored directories, and the probe result.
 
-**Put the toolchain line at the very top of the report, as a warning when it fails.** No Duo SDK in the active toolchain means every new-API recommendation goes to **Pending iOS 27.1 SDK**; if the probe found one in another installed Xcode, say which, and give `export DEVELOPER_DIR=<that>/Contents/Developer` (no admin rights) — a beta installs beside the release, and the active toolchain is often the older one. When the active toolchain does carry the Duo APIs, drop the Pending section entirely. Full reasoning and the complete gate: the `iphone-duo` skill, `references/testing-and-sources.md` §Toolchain gate.
+**Put the toolchain line at the very top of the report, as a warning when it fails.** The required toolchain is **Xcode 27.2 RC or later** with the iOS 27.2 simulator runtimes. No Duo SDK in the active toolchain means every new-API recommendation goes to **Pending iOS 27.1 SDK**; if the probe found Xcode 27.2+ elsewhere, say which, and give `export DEVELOPER_DIR=<that>/Contents/Developer` (no admin rights) — several Xcodes install side by side, and the active one is often older. Active Xcode 27.1: the Duo APIs are there, so drop the Pending section, but warn that 27.1 is unsupported and ask for Xcode 27.2 RC or later (https://developer.apple.com/download/applications/) before anyone trusts its simulator. Full reasoning and the complete gate: the `iphone-duo` skill, `references/testing-and-sources.md` §Toolchain gate.
 
 ## Step 2 — run every category
 

@@ -7,7 +7,7 @@ Write it in full, then return it as the final message (and to the file path give
 
 Source: <Figma URL or Sketch file>; frames reviewed: N (compact N, regular N, Split View N); mode: measured (Figma JSON) | visual-only (exports)
 HIG state: Duo page change log <date from JSON>; general pages fetched <date>
-Points are derived @3x (466 × 678 outer, 626 × 890 inner, ~313 Split View half) — not Apple-stated.
+Points are app-window sizes measured on the Duo simulator (466 × 678 outer, 669 × 951 inner; ~334 Split View half derived) — not Apple-stated.
 
 ## Verdict
 <Ready | Ready with notes | Not ready> — <one sentence>. Per screen: <name>: <verdict> …

@@ -1,19 +1,36 @@
 # Testing iPhone Duo layouts, toolchain status, sources
 
-Research 2026-09-10/11. SDK-verified 2026-09-21 against Xcode 27.1 beta 1 (27A9269) and **re-verified 2026-10-28 against the released Xcode 27.1 (27A9275, 2026-10-15) and Xcode 27.2 RC (27B48, 2026-10-19)**. §Freshness lists what is still open.
+Research 2026-09-10/11. SDK-verified 2026-09-21 against Xcode 27.1 beta 1 (27A9269) and **re-verified 2026-10-28 against the released Xcode 27.1 (27A9275, 2026-10-15) and Xcode 27.2 RC (27B48, 2026-10-19)**. Since 2026-10-29 Xcode 27.2 RC is the required toolchain, and the simulator measurements here are taken on it. §Freshness lists what is still open.
 
 ## Toolchain gate — the first thing you run, before anything else
 
-**Detect the capability, never compare version numbers.** Xcode **27.2 beta 1** (27B5019j) shipped on
-**2026-09-16**, two days *before* **27.1 beta 1** (27A9269) on **2026-09-18**, and it is not on the
-same build train (27B vs 27A). A `>= 27.1` test passed that 27.2 beta and then every Duo symbol failed to
-compile. Xcode 27.2 RC (27B48) does carry the Duo APIs, so today the version compare would happen to work —
-the probe stays because it answers the real question on every build train. Ask the SDK what it contains:
+**Required: Xcode 27.2 RC (27B48) or a later Xcode, with the iOS 27.2 simulator runtimes** —
+`iOS-27-2-iPhone19-4` for the iPhone Duo (24B91014 or later) and `iOS-27-2` for every other iPhone and
+iPad (24B114 or later). Xcode 27.1 also carries the Duo APIs, but this plugin no longer targets it:
+its Duo simulator has bugs that 27.2 RC fixes (a `CameraCaptureAccessory` without a capture session,
+190155353), its iOS 27.1 runtime runs only the Duo — so iPad and the other iPhones never meet the
+27.1 APIs and the §Scope check cannot run — and the measurements in these references are taken on
+27.2 RC. When the gate finds only Xcode 27.1, ask the user to install 27.2 RC or later before any
+simulator work: https://developer.apple.com/download/applications/
+
+This is about the toolchain, not about the devices your app runs on: a Duo shipped with iOS 27.1 on
+2026-10-23 and got iOS 27.2 on 2026-10-26, so code keeps `#available(iOS 27.1, *)` for the Duo APIs —
+§Known iOS 27.1 bugs.
+
+**Detect the capability first, then the version.** Xcode **27.2 beta 1** (27B5019j) shipped on
+**2026-09-16**, two days *before* **27.1 beta 1** (27A9269) on **2026-09-18**, on a different build
+train (27B vs 27A) and without any Duo API: a version compare alone passed it and then every Duo
+symbol failed to compile. So the gate asks the SDK what it contains, and only then checks that the
+Xcode is 27.2 or later:
 
 ```bash
 duo_sdk() {   # $1 = .../Xcode.app/Contents/Developer — true when its iOS SDK has the Duo APIs
   local h="$1/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/UIKit.framework/Headers"
   [ -f "$h/UIHingeInteraction.h" ] && [ -f "$h/UIViewReservedRegion.h" ]
+}
+xc_272() {    # $1 = .../Xcode.app — true for Xcode 27.2 or later
+  local v; v=$(defaults read "$1/Contents/version" CFBundleShortVersionString 2>/dev/null)
+  awk -v v="$v" 'BEGIN { split(v, a, "."); exit !(a[1] > 27 || (a[1] == 27 && a[2] >= 2)) }'
 }
 xc_label() {  # "27.1 (27A9269), iOS SDK 27.1"
   local v b sv p="$1/Contents/version"
@@ -23,28 +40,32 @@ xc_label() {  # "27.1 (27A9269), iOS SDK 27.1"
   echo "${v:-?} (${b:-?}), iOS SDK ${sv:-none}"
 }
 xcodes() {    # every installed Xcode: the usual folders plus Spotlight, which also finds other volumes
-  { ls -d /Applications/Xcode*.app "$HOME/Applications"/Xcode*.app 2>/dev/null
+  { find /Applications "$HOME/Applications" -maxdepth 1 -name 'Xcode*.app' 2>/dev/null   # find, not a glob: zsh aborts on no match
     mdfind "kMDItemCFBundleIdentifier == 'com.apple.dt.Xcode'" 2>/dev/null; } | sort -u
 }
 
 ACTIVE="${DEVELOPER_DIR:-$(xcode-select -p 2>/dev/null)}"
 echo "Active toolchain: ${ACTIVE:-none}   (xcodebuild, xcrun and xed all follow this)"
-DUO_DIR=""; duo_sdk "$ACTIVE" && DUO_DIR="$ACTIVE"
 xcodes | while read -r app; do
   [ -d "$app/Contents/Developer" ] || continue
   duo_sdk "$app/Contents/Developer" && m="Duo APIs: yes" || m="Duo APIs: NO "
-  printf '  %-46s %-32s %s\n' "$app" "$(xc_label "$app")" "$m"
+  xc_272 "$app" && r="27.2+: yes" || r="27.2+: NO "
+  printf '  %-46s %-32s %s  %s\n' "$app" "$(xc_label "$app")" "$m" "$r"
 done
-[ -n "$DUO_DIR" ] || DUO_DIR=$(xcodes | while read -r a; do duo_sdk "$a/Contents/Developer" && { echo "$a/Contents/Developer"; break; }; done)
+GOOD=$(xcodes | while read -r a; do duo_sdk "$a/Contents/Developer" && xc_272 "$a" && { echo "$a/Contents/Developer"; break; }; done)
 
-if duo_sdk "$ACTIVE"; then
-  echo "OK — the active toolchain has the iPhone Duo SDK."
-elif [ -n "$DUO_DIR" ]; then
-  printf 'WARNING — the active toolchain has no iPhone Duo APIs, but an installed Xcode does.\n  Use it per command (no admin rights):\n      export DEVELOPER_DIR=%s\n  Machine-wide instead (needs admin):\n      sudo xcode-select -s %s\n' "$DUO_DIR" "$DUO_DIR"
+if duo_sdk "$ACTIVE" && xc_272 "${ACTIVE%/Contents/Developer}"; then
+  echo "OK — the active toolchain is Xcode 27.2 or later with the iPhone Duo SDK."
+elif [ -n "$GOOD" ]; then
+  printf 'WARNING — the active toolchain is not Xcode 27.2+ with the Duo APIs, but an installed Xcode is.\n  Use it per command (no admin rights):\n      export DEVELOPER_DIR=%s\n  Machine-wide instead (needs admin):\n      sudo xcode-select -s %s\n' "$GOOD" "$GOOD"
+elif duo_sdk "$ACTIVE"; then
+  printf 'WARNING — Xcode 27.1 is not supported. Install Xcode 27.2 RC or later:\n  https://developer.apple.com/download/applications/\n  Its SDK has the Duo APIs, so code may be written; do not trust its simulator until you upgrade.\n'
 else
-  printf 'WARNING — no installed Xcode carries the iPhone Duo APIs.\n  Get Xcode 27.1 or later: https://developer.apple.com/xcode/resources/\n  Until then do resizability work only and leave 27.1 symbols as // TODO:.\n'
+  printf 'WARNING — no installed Xcode 27.2+ carries the iPhone Duo APIs. Install Xcode 27.2 RC or later:\n  https://developer.apple.com/download/applications/\n  Until then do resizability work only and leave 27.1 symbols as // TODO:.\n'
 fi
 
+xcrun simctl list runtimes | grep -E 'SimRuntime\.iOS-(27-[2-9]|2[89]-)' \
+  || echo "WARNING — no iOS 27.2+ simulator runtime: install the runtimes of Xcode 27.2 RC or later"
 xcrun simctl list devicetypes | grep -i duo        # empty = no Duo simulator installed
 ```
 
@@ -68,7 +89,7 @@ question in ~0.04 s if you want a second signal.
   `DTPlatformVersion = 27.0` there. `Contents/version.plist` is the honest one.
 - **`xcode-select -p` is the command-line default** and `xed`, `xcodebuild` and `xcrun` all resolve
   through it (`DEVELOPER_DIR` overrides it per process). Double-clicking a project in Finder is a
-  *separate* setting owned by LaunchServices, so "my Xcode opens 26.6" and "my builds use 27.1" can
+  *separate* setting owned by LaunchServices, so "my Xcode opens 26.6" and "my builds use 27.2" can
   both be true at once. The gate reports the one that decides your build.
 - `xcode-select -p` can point at `/Library/Developer/CommandLineTools`, which has no `Platforms`
   directory at all — the probe returns false and the warning is still correct.
@@ -79,23 +100,40 @@ question in ~0.04 s if you want a second signal.
 |---|---|
 | no Duo probe | resizability work only: scene lifecycle, `UIScreen.main`, size classes, safe area, standard containers, windows |
 | 27.0 | same; a 27.0 build also **fails to launch without the UIScene lifecycle** (TN3187) — use it to prove the BLOCKER |
-| Duo probe passes | everything: reserved regions, arrangements, vertical-bar API, hinge, scene accessories, dual cameras |
+| Duo probe passes, Xcode 27.1 | the code, but ask for Xcode 27.2 RC or later before any simulator check |
+| Duo probe passes, Xcode 27.2 or later | everything: reserved regions, arrangements, vertical-bar API, hinge, scene accessories, dual cameras |
 
 Without the Duo SDK, new symbols go into `// TODO:` comments and the report's **Pending iOS 27.1 SDK**
 section — never into code. Do not restructure working screens around assumptions about Duo geometry
 (hinge position, exact widths) — prepare boundaries, verify later.
 
-## What Apple provides — Xcode 27.1 + Device Hub
+## Known iOS 27.1 bugs — Duos that have not updated
 
-- **Xcode 27.1** (27A9275, released 2026-10-15; beta 1 was 27A9269) ships "SDKs for iOS 27.1, iPadOS 27" and the iPhone Duo simulator. **Xcode 27.2 RC** (27B48) ships the iOS 27.2 SDK with every Duo API. Apple's news post: "Recompile existing apps with Xcode 27.1, which adds development support for iPhone Duo."
+The Duo shipped with iOS 27.1 on 2026-10-23 and got iOS 27.2 (24B91020) on 2026-10-26; until every
+Duo updates, code that runs on a Duo still meets 27.1. Do not keep a 27.1 simulator matrix for these —
+apply workarounds that also run on 27.2, and re-check this list when it grows.
+
+| On iOS 27.1 | Fixed in | Workaround that also runs on 27.2 | Source |
+|---|---|---|---|
+| The view passed straight to `ArrangementView` reads the **window's** size classes and gets `splitArrangementAxis == nil`; views nested inside it read the pane's | iOS 27.2 | wrap each child in a container — `ArrangementView { VStack { PaneView() } } secondary: { VStack { Detail() } }` — so the view that reads them is no longer the top one | measured 2026-10-29 on the iOS 27.1 runtime (24A94425) against 27.2 (24B91014), `ArrangementView` as the root of a `NavigationStack`; first reported by sarunw.com, 2026-10-26 — `arrangements-and-reserved-regions.md` §Size classes inside the panes |
+
+To keep Duo-only code off iOS 27.1 altogether, raise the availability check inside the hinge gate
+(`DetectHinge` and `HingeGate.install` in `layout-size-classes-safe-area.md` §Scope) from
+`#available(iOS 27.1, *)` to `#available(iOS 27.2, *)`. `deviceHasHinge` then stays `false` on a Duo
+still on 27.1, which keeps the existing layout — the one iPad and the other iPhones keep — until it
+updates.
+
+## What Apple provides — Xcode 27.2 RC + Device Hub
+
+- **Xcode 27.2 RC** (27B48, 2026-10-19) ships the iOS 27.2 SDK with every Duo API, the Duo runtime and the iOS 27.2 runtime for every other device — the toolchain this plugin requires (§Toolchain gate). **Xcode 27.1** (27A9275, released 2026-10-15) was the first to ship "SDKs for iOS 27.1, iPadOS 27" and the iPhone Duo simulator; Apple's news post: "Recompile existing apps with Xcode 27.1, which adds development support for iPhone Duo." Recompiling with 27.2 RC gives the same Duo APIs.
 - **Simulator identifiers** (checked 2026-10-28):
 
   | Thing | Identifier |
   |---|---|
   | Device type | `com.apple.CoreSimulator.SimDeviceType.iPhone-Duo` |
-  | Runtime, Xcode 27.1 | `com.apple.CoreSimulator.SimRuntime.iOS-27-1` (24A94401 for beta 1; later builds share the identifier) — **runs only the iPhone Duo** |
-  | Runtime, Xcode 27.2 RC, Duo | `com.apple.CoreSimulator.SimRuntime.iOS-27-2-iPhone19-4` (24B91014) |
-  | Runtime, Xcode 27.2 RC, every other iPhone and iPad | `com.apple.CoreSimulator.SimRuntime.iOS-27-2` (24B114) — the first runtime where iPad and the other iPhones see the 27.1 APIs, so §Scope's "no hinge" check can run there |
+  | Runtime, Duo — use this | `com.apple.CoreSimulator.SimRuntime.iOS-27-2-iPhone19-4` (24B91014, Xcode 27.2 RC) |
+  | Runtime, every other iPhone and iPad — use this | `com.apple.CoreSimulator.SimRuntime.iOS-27-2` (24B114, Xcode 27.2 RC) — the first runtime where iPad and the other iPhones see the 27.1 APIs, so §Scope's "no hinge" check runs there |
+  | Runtime, Xcode 27.1 — do not use | `com.apple.CoreSimulator.SimRuntime.iOS-27-1` (24A94401 for beta 1; later builds share the identifier) — runs only the iPhone Duo; `simctl create … iOS-27-1` still picks it when it is installed |
 
 - **Device Hub** replaces Simulator.app in Xcode 27. 111461 1:25: "Use the control buttons at the bottom of the screen to open, close, rotate, or fold iPhone Duo." Lab 285 adds that it renders the device in 3D as it moves through the poses. **Buttons only — still no documented CLI** (`simctl` has no fold/pose subcommand; `simctl ui` covers appearance / increase_contrast / content_size only). Asked in lab 287 32:07 about the missing XCUITest / `simctl` hook for the hinge state, Apple pointed to none and asked for Feedback Assistant reports that name the exact need — snapshot testing, which transitions to cover, and why (33:12). Until then CI covers sizes, not poses: width-parameterized tests and resizing (§Proxies) run anywhere, and the fold is checked by hand in Device Hub.
 - **A physical Duo is not required** for most testing (lab 287 10:08): the simulator reaches "all of the different states and poses". Hardware-specific work — camera streaming, for one — is better on a device, and holding one can change where you put controls (11:14).
@@ -103,21 +141,21 @@ section — never into code. Do not restructure working screens around assumptio
 - **Split View** in the simulator: drag the home indicator sideways to bring in a second app.
 - Poses to cover: closed portrait, closed landscape, open flat portrait (the only horizontal-bar pose), open landscape, partially folded book (hinge vertical), table/laptop (hinge horizontal), tent; each with and without Split View; PiP stacking; scene accessory on/off for camera apps. **Also watch the transition between poses**, not just the resting states (lab 286 ~43:30; lab 285 ~42:00 on disorienting transitions).
 - **Camera apps now launch in Simulator** (new in 27.1, lab 286 ~44:30): there is no camera, the preview stays empty and the app detects no capture device, but the surrounding UI is testable. Anything that depends on an actual capture session — scene accessories included — needs hardware.
-- **Known issues, Xcode 27.1** (release notes): first Simulator launch can take several minutes; StandBy is unavailable in the Duo runtime; most app extensions cannot be run or debugged in the Duo runtime; a `CameraCaptureAccessory` can use both displays without an active capture session (190155353 — fixed in 27.2 RC); iOS 27.1-only APIs fail to compile for Mac Catalyst (185924957, still open in 27.2 RC — wrap them in `#if !targetEnvironment(macCatalyst)`), and a target with an iOS 27.1 minimum has no Catalyst run destination until it gets a Mac Catalyst 27.0 deployment target (187046347). The simulator carried only a limited set of first-party apps before launch (lab 287 12:38); lab 288 30:20 confirmed the Camera app cannot be tried there. Previews gained a **Display** group in the canvas overrides picker for previewing on a device's alternative display.
+- **Known issues listed in the Xcode 27.1 notes** — the reason 27.1 is no longer used: a `CameraCaptureAccessory` can use both displays without an active capture session (190155353 — fixed in 27.2 RC). Not re-checked on 27.2 RC: first Simulator launch can take several minutes; StandBy is unavailable in the Duo runtime; most app extensions cannot be run or debugged in the Duo runtime. Still open in 27.2 RC: iOS 27.1-only APIs fail to compile for Mac Catalyst (185924957, still open in 27.2 RC — wrap them in `#if !targetEnvironment(macCatalyst)`), and a target with an iOS 27.1 minimum has no Catalyst run destination until it gets a Mac Catalyst 27.0 deployment target (187046347). The simulator carried only a limited set of first-party apps before launch (lab 287 12:38); lab 288 30:20 confirmed the Camera app cannot be tried there. Previews gained a **Display** group in the canvas overrides picker for previewing on a device's alternative display.
 - **Known issues, Xcode 27.2 RC**: screenshots and recordings of an iPhone Duo can be black for a few minutes after boot (187146039) — wait before capturing App Store shots; **VoiceOver, Accessibility Inspector and other accessibility tools cannot read an iPhone Duo inside Device Hub** (187148389) — audit accessibility on another device or on hardware; modifier keys can stop working after switching displays (189465196, click the visible screen); cloning a 27.2 simulator can fail (188407822, the release notes give a `find … -delete` workaround). Device Hub itself gained slow animations, shake, memory pressure and hardware-keyboard simulation.
-- **Apple's test list** (Three steps page, Step 3): "The iOS resizable simulator in Device Hub", "iPhone Mirroring on macOS 27. Resize the window to extreme sizes in both directions", and "The iPhone Duo simulator in Xcode 27.1" — "the best way to test the full native experience". The DTS summary adds that Device Hub supports checking resizing in iPad or iPhone Mirroring contexts, and that reachability, asymmetric safe areas and the weight of the device only show on hardware: "Always validate button targets, vertical bar positioning, and navigation flows on physical iPhone Duo devices." 
+- **Apple's test list** (Three steps page, Step 3): "The iOS resizable simulator in Device Hub", "iPhone Mirroring on macOS 27. Resize the window to extreme sizes in both directions", and "The iPhone Duo simulator in Xcode 27.1" — "the best way to test the full native experience" (the same simulator ships with 27.2 RC; use that one). The DTS summary adds that Device Hub supports checking resizing in iPad or iPhone Mirroring contexts, and that reachability, asymmetric safe areas and the weight of the device only show on hardware: "Always validate button targets, vertical bar positioning, and navigation flows on physical iPhone Duo devices." 
 - **Not documented — do not invent:** Instruments templates for Duo.
 - **`devicectl` resizing — real, and not a fold** (corrected 2026-10-28; earlier editions called it third-party). Xcode 27.0, 27.1 and 27.2 RC all ship `devicectl device appResize` — "Start and adjust resizable app sessions on a device display", with `start` (moves the frontmost apps to a display whose name contains "Resizable" and runs until interrupted), `set --preferred-size <WxH> [--corner-radius]`, `observe`, and `devicectl device info appResize` for the state — plus `devicectl device orientation`, "Query or set simulated device physical orientation (for devices that supported it)". It drives continuous resizing on a connected device, the same exercise as iPhone Mirroring; it does not fold a Duo or change a pose. A DTS forum answer treats stale accessibility snapshots during "live device resizing operations via devicectl" as a bug to file and asks for proper content shapes on interactive elements so automated tests hit-test correctly ([847880](https://developer.apple.com/forums/thread/847880)).
-- **App Resizability** — Xcode's modernization agent skill, **present only from 27.1** (`IDEIntelligenceChat.framework/.../app-resizability.idechatprompttemplate` plus five `app-resizability-ref-*-task.md` files; Xcode 27.0 has none of them). Its own description covers `mainScreen`, `interfaceOrientation`, `userInterfaceIdiom`, app → scene lifecycle and safe-area insets, and it treats "get my app ready for iPhone Duo" as a request for every task in its registry. Export it for other tools:
+- **App Resizability** — Xcode's modernization agent skill, **present from 27.1** and in 27.2 RC (`IDEIntelligenceChat.framework/.../app-resizability.idechatprompttemplate` plus five `app-resizability-ref-*-task.md` files; Xcode 27.0 has none of them). Its own description covers `mainScreen`, `interfaceOrientation`, `userInterfaceIdiom`, app → scene lifecycle and safe-area insets, and it treats "get my app ready for iPhone Duo" as a request for every task in its registry. Export it for other tools:
 
   ```bash
-  DEVELOPER_DIR=/Applications/Xcode-27.1.0.app/Contents/Developer \
+  DEVELOPER_DIR=/Applications/<Xcode 27.2 RC or later>.app/Contents/Developer \
     xcrun agent skills export --output-dir <path> [--replace-existing]
   ```
 
 ## UI tests (XCUITest) on the open Duo — take coordinates from the window
 
-Observed locally 2026-10-13 (Xcode 27.1 beta, iPhone Duo simulator iOS 27.1, open flat at 180°; not re-run on Xcode 27.2 RC).
+Observed locally 2026-10-13 (Xcode 27.1 beta, iPhone Duo simulator iOS 27.1, open flat at 180°; the XCUITest behavior is not re-run on Xcode 27.2 RC, the 951 × 669 pt window is — 2026-10-29).
 Open flat, the interface is landscape — `XCUIDevice.shared.orientation` is `.landscapeRight` and the
 window is 951×669 pt — while `XCUIApplication.frame` **EXISTING(iOS 9)** stays portrait at 669×951.
 Everything derived from the application's frame comes out rotated by 90°:
@@ -148,7 +186,7 @@ nothing at any dx.
 1. **iPhone Mirroring** — Apple's own first recommendation (Technology Overviews; lab 285 ~21:30, lab 286 ~05:00): resize the mirrored window to a Duo-like aspect ratio. It keeps the **phone idiom**, so the frameworks behave the way they will on Duo. See TN3210 "Optimizing your app for iPhone Mirroring".
 2. **iPad with window resizing** — drag the window through a continuum of sizes (lab 286 ~04:30). An iPhone-only app counts too: "iPhone apps running in iPhone Mirroring and on iPad will be expected to resize as well", and there is no opt-out ([847872](https://developer.apple.com/forums/thread/847872)). Exercises the inner-display size class, sidebars, `NavigationSplitView` expansion. Does not exercise vertical bars, reserved regions, hinge.
 3. **Compact × regular**: iPhone 18 Pro / 17 Pro on 27.0 — the outer-display class, plus the TN3187 launch check when built with the 27.0 SDK.
-4. **Width-parameterized render tests** at 466 pt (outer) and 626 pt (inner) — **derived from @3x, not Apple-stated** — plus 313 pt (Split View half of 626). Pattern: host the view (or a `UIHostingController`) in a `UIWindow(frame: CGRect(x: 0, y: 0, width: w, height: h))`, call `layoutIfNeeded()`, then assert frames or snapshot; parameterize one test over the three widths. Label the numbers `derived` in test names. Also resize the same window mid-test (626 → 313 → 626) and assert that state survived: navigation depth, scroll offset, text-field contents, selection, playback position.
+4. **Width-parameterized render tests** at 466 pt (outer) and 669 pt (inner) — the measured windows — plus ~334 pt (Split View half of 669, derived). Pattern: host the view (or a `UIHostingController`) in a `UIWindow(frame: CGRect(x: 0, y: 0, width: w, height: h))`, call `layoutIfNeeded()`, then assert frames or snapshot; parameterize one test over the three widths. Label the numbers `derived` in test names. Also resize the same window mid-test (626 → 313 → 626) and assert that state survived: navigation depth, scroll offset, text-field contents, selection, playback position.
 5. **Static analysis**: the grep audit (`audit-checklist.md`) — the biggest wins (`UIScreen.main`, cached widths, missing size classes, custom bars, scene lifecycle) need no simulator.
 6. **Split View asymmetry** can be approximated on iPad simulators with Split View / Stage Manager — different insets, same class of bug.
 
@@ -159,7 +197,7 @@ A single screenshot is not verification: check several geometries and poses, a r
 Anything marked PROSE / CAPTION / "verify" in the references — check before writing it:
 
 ```bash
-export DEVELOPER_DIR=/Applications/Xcode-27.1.0.app/Contents/Developer   # adjust to the installed name
+export DEVELOPER_DIR=/Applications/Xcode-27.2.app/Contents/Developer   # Xcode 27.2 RC or later; adjust to the installed name
 SDK=$(xcrun --sdk iphonesimulator --show-sdk-path); echo "$SDK"
 grep -rhoE "reservedRegions|ReservedRegion|ArrangementView|ArrangementViewStyle|arrangementViewStyle|splitArrangement[A-Za-z]*|overlayArrangement[A-Za-z]*|onHingeChange|DeviceHinge|axisBehavior|toolbarVerticalEdge|toolbarVerticalBehavior|toolbarVerticalCompressionBehavior|ToolbarOverflowMenu|visibilityPriority|toolbarMinimization[A-Za-z]*|sceneAccessory|CameraCaptureAccessory|presentationPlacement|backgroundExtensionEffect|AnyLayout|containerRelativeFrame|onGeometryChange" \
   "$SDK/System/Library/Frameworks/SwiftUI.framework/Modules/SwiftUI.swiftmodule/"*.swiftinterface \
@@ -199,7 +237,7 @@ its tools. Device Hub pose switching stays manual even with the bridge.
 
 ## Freshness — what is still open
 
-Closed 2026-10-28: Xcode 27.1 released (27A9275) and 27.2 RC out (27B48); the Duo shipped on 2026-10-23; the Duo API documentation pages no longer carry `"beta":true` and every symbol was re-verified (§Verify symbols); the HIG text is unchanged since 2026-09-21 and the article since 2026-10-04 (sentence diff against Wayback Machine copies); group labs 285–288, the DTS summary thread and the three 2026-09-23 forum Q&As are read; Apple's "Three steps" page and the 2026-10-05 news post are folded into `device-and-platform.md`.
+Closed 2026-10-28: Xcode 27.1 released (27A9275) and 27.2 RC out (27B48); the Duo shipped on 2026-10-23; the Duo API documentation pages no longer carry `"beta":true` and every symbol was re-verified (§Verify symbols); the HIG text is unchanged since 2026-09-21 and the article since 2026-10-04 (sentence diff against Wayback Machine copies); group labs 285–288, the DTS summary thread and the three 2026-09-23 forum Q&As are read; Apple's "Three steps" page and the 2026-10-05 news post are folded into `device-and-platform.md`. Closed 2026-10-29: Xcode 27.2 RC made the required toolchain (§Toolchain gate); the inner display, the fold band, pane size classes inside `ArrangementView` and the system margins measured on the 27.2 RC and 27.1 Duo runtimes and on iPad (§Known iOS 27.1 bugs).
 
 Still to watch:
 
@@ -293,7 +331,9 @@ These are **auto-generated captions, not an edited transcript**. Use them for in
 | https://developer.apple.com/design/resources/ | Figma and Sketch design kits for iPhone Duo (lab 285 ~00:30) |
 | https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications · /app-preview-specifications | iPhone Duo sizes, the badge, the April 2027 requirement (the old `reference/screenshot-specifications/` path redirects here) |
 | https://www.apple.com/iphone-duo/specs/ · https://www.apple.com/newsroom/2026/09/apple-unveils-iphone-duo/ | hardware, dates |
+| https://developer.apple.com/documentation/swiftui/contentmarginguide · /arrangementview · /splitarrangementviewstyle · /overlayarrangementviewstyle | read 2026-10-29: the 16–20 pt system margins and the asymmetric margin beside a vertical bar; the containers to keep an arrangement out of; a closed Duo in landscape shows only the primary; primary above secondary in an overlay |
+| https://sarunw.com/posts/arrangementview-inner-size-classes/ · /swiftui-content-margin-guide/ · /uikit-layoutmarginsguide/ | third-party (2026-10-26, 10-22, 10-16); every number used here was re-measured on the simulator on 2026-10-29 — the pane size classes match only with `ArrangementView` at the root of the `NavigationStack` |
 | https://developer.apple.com/documentation/xcode/giving-external-agents-access-to-xcode | Xcode MCP bridge (JS-only page) |
 | https://code.claude.com/docs/en/skills · https://code.claude.com/docs/en/sub-agents | skill / agent frontmatter reference |
 | Related: WWDC26 269 "What's new in SwiftUI", WWDC26 341 "Support the Center Stage front camera in your iOS app", WWDC25 356 "Get to know the new design system"; TN3187 (scene lifecycle), TN3208 (launch screen); "Supporting device rotation in your camera app" | linked from the talks and the article |
-| Third-party (unverified, not Apple): blakecrosley.com, pasqualepillitteri.it, bitrise.io, dev.to | point sizes, pose names (Touch ID is now on Apple's specs page; `devicectl appResize` turned out to be a real Apple command) |
+| Third-party (unverified, not Apple): blakecrosley.com, pasqualepillitteri.it, bitrise.io, dev.to | point sizes (their 626 × 890 was the panel's pixels ÷ 3 — the measured window is 669 × 951), pose names (Touch ID is now on Apple's specs page; `devicectl appResize` turned out to be a real Apple command) |

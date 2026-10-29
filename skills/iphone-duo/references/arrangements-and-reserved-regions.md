@@ -10,7 +10,7 @@ Spelling notes: the talk prose says "the reservedRegion method" singular while b
 
 | Kind | What | Behavior |
 |---|---|---|
-| `.division` | the fold | **divides** a larger area into smaller ones; **active only when partially folded, zero width when flat** |
+| `.division` | the fold | **divides** a larger area into smaller ones; **active only when partially folded**. The talk adds that when flat "it's inactive and has a width of zero", but the Xcode 27.2 RC and 27.1 simulators return the inactive region with the same 40 pt band — test `isActive`, never the width |
 | `.occlusion` | the FaceTime (front) camera | **occludes** rather than divides |
 
 Regions are **active or inactive**; queries return active ones by default, `options: .includeInactive` returns the rest. Inactive regions still inform high-level decisions — e.g. **prefer an even number of grid columns** so a later fold divides cleanly. The article restates it: "a reserved region that represents the fold is active when iPhone Duo is partially open, but inactive when it is fully open."
@@ -29,7 +29,7 @@ The SwiftUI query takes a third argument: `reservedRegions(kind:options:layoutDi
 
 The HIG names three regions: outer front camera (always present; grows into the Dynamic Island for Live Activities), inner front camera (under-display, present only while active — UI moves aside when it turns on), folding region (divides the inner display when partially open).
 
-**No numeric hinge width, angle thresholds or inset values are published.** Query — never hard-code.
+**No numeric hinge width, angle thresholds or inset values are published.** Query — never hard-code. For orientation only, measured 2026-10-29 on the Duo simulator (Xcode 27.2 RC; iOS 27.2 and 27.1 runtimes the same): the division region is a **40 pt band centred on the 669 × 951 pt inner window** — x 455–495 in landscape (book), y 455–495 in portrait (table) — active when folded, inactive when flat.
 
 **Touches over the camera region are not reliable.** The DTS summary of the labs: a custom element that overlaps a hardware-reserved region such as the camera without adopting the reserved-region APIs gets "touch events in that area … suppressed or may not register as expected". Safe-area insets alone do not describe these regions either — the same summary says safe areas are "insufficient for handling dynamic folding regions", and size classes "don't encode the hinge's exact location".
 
@@ -152,11 +152,11 @@ let upNextVC = UpNextViewController()
 arrangementVC.setViewController(upNextVC, for: .secondary)
 ```
 
-Placement rule: the arrangement is the **root of the navigation container**, never the other way round.
+Placement rule: the arrangement is the **root of the navigation container**, never the other way round. Apple's `ArrangementView` documentation names the containers to keep apart: "avoid adding an arrangement view inside another container such as a scroll view, navigation split view, grid, or other container view that lays out other views. Also avoid placing some container views inside an arrangement view, such as a navigation split view or tab view." `UIArrangementViewController` has the same rule for scroll views, split view controllers, collection views and tab view controllers. Measured 2026-10-29: inside a `VStack`, an `ArrangementView` still laid out both panes, but on iPad and on the closed Duo the panes kept the window's size classes and `splitArrangementAxis` was `nil`; as the root of the `NavigationStack` they got the pane's values (§Size classes inside the panes).
 
 ### Split arrangement
 
-Divides the bounds between primary and secondary. **Horizontal when wider than tall, vertical when taller than wide.** When folded, the split follows the division region.
+Divides the bounds between primary and secondary. **Horizontal when wider than tall, vertical when taller than wide.** When folded, the split follows the division region. From the `SplitArrangementViewStyle` documentation: the primary view goes leading in landscape and on top in portrait; "By default, a split arrangement view sizes the primary and secondary views equally when a display has one region"; and "When someone is holding a closed iPhone Duo in landscape orientation, the split arrangement only shows the primary view."
 
 ```swift
 // 111463 12:00 — Specify the split arrangement style                 VERBATIM
@@ -213,13 +213,33 @@ Spelling: `.axes(...)`, plural, and it takes an `Axis.Set`. CAPTION `axis(` is w
 | `splitArrangementLayoutSize(minWidth:idealWidth:maxWidth:minHeight:idealHeight:maxHeight:)` | absolute points instead of a ratio |
 | `splitArrangementFixedLayoutSize(horizontal:vertical:)` | keep the view's own ideal size on that axis |
 
-Read the resolved axis from a child with `@Environment(\.splitArrangementAxis)` → `Axis?`. In UIKit the same knobs are `UISplitArrangement.Dimension` (`automatic()`, `intrinsic()`, `fractional(_:)`, `absolute(_:)`) and `UISplitArrangement.DimensionRange`.
+Read the resolved axis from a child with `@Environment(\.splitArrangementAxis)` → `Axis?` — on iOS 27.1 from a view nested *inside* the child, because the child itself reads `nil` there (§Size classes inside the panes). In UIKit the same knobs are `UISplitArrangement.Dimension` (`automatic()`, `intrinsic()`, `fractional(_:)`, `absolute(_:)`) and `UISplitArrangement.DimensionRange`.
 
-Prefer a ratio to absolute points: absolute widths are the thing that breaks in a ~313 pt Split View half.
+Prefer a ratio to absolute points: absolute widths are the thing that breaks in a ~334 pt Split View half.
+
+#### Size classes inside the panes
+
+Each pane gets its own size classes: **the split axis goes compact** — side by side gives a compact width, stacked gives a compact height. A 372 pt pane in the book pose therefore lays out like an iPhone, not like the regular × regular window around it. Measured 2026-10-29 on the simulators (Xcode 27.2 RC; Duo runtime 24B91014, iPad on iOS 27.2 24B114), `ArrangementView` as the root of a `NavigationStack` with a large title; the default style and `.split` gave the same values, and a `UIView` inside a pane reads the same traits:
+
+| Pose | Window | Layout | Each pane (W / H) | Pane sizes (pt) |
+|---|---|---|---|---|
+| Closed, portrait | 466 × 678, C / R | stacked | C / C | 382 × 281 each (84 pt bar trailing) |
+| Closed, landscape | 678 × 466, C / C | primary only | C / C | 594 × 350 |
+| Partially open, portrait (table) | 669 × 951, R / R | stacked around the fold | R / C | 669 × 322 above, 669 × 422 below |
+| Partially open, landscape (book) | 951 × 669, R / R | side by side around the fold | C / R | 456 and 372 wide (84 pt bar) |
+| Open, portrait | 669 × 951, R / R | stacked | R / C | 669 × 392 each |
+| Open, landscape | 951 × 669, R / R | side by side | C / R | 434 and 433 wide (84 pt bar) |
+| iPad Pro 13-inch (M5), portrait | 1032 × 1376, R / R | stacked | R / C | 1032 × 609 each |
+
+Heights depend on the bars above the arrangement; the widths and the classes are the point.
+
+- Need the window's size classes inside a pane? Read them outside the `ArrangementView` and pass them in.
+- **iOS 27.1 bug, fixed in 27.2:** the view passed straight to `ArrangementView` reads the **window's** size classes (C / R closed, R / R open) and gets `splitArrangementAxis == nil`; every view nested inside it reads the pane's values. Wrap each child so the view that reads them is not the top one — `ArrangementView { VStack { PaneView() } } secondary: { VStack { Detail() } }`. Measured on the iOS 27.1 runtime (24A94425) with the same probe; first reported by sarunw.com (2026-10-26). → `testing-and-sources.md` §Known iOS 27.1 bugs.
+- **Rule 14:** iPad gets the same treatment — its panes turn regular × compact — so an arrangement added for Duo changes the layouts inside it on iPad too. Keep a Duo-only arrangement behind the hinge gate (`layout-size-classes-safe-area.md` §Scope).
 
 ### Overlay arrangement
 
-Stacks the two children — primary above secondary — and moves them **side by side when folded**. Read the z-index to switch between collapsed and expanded content. The HIG says so in words ("otherwise the primary view moves atop the secondary view"), and the 111463 sample collapses the *primary* while it is stacked; one DTS forum answer says the opposite ("positions the secondary view on top of the primary view in portrait", [847816](https://developer.apple.com/forums/thread/847816)). Follow the HIG, and let `overlayArrangementZIndex` / `state(for:)?.zIndex` decide at runtime rather than assuming either.
+Stacks the two children — primary above secondary — and moves them **side by side when folded**. Read the z-index to switch between collapsed and expanded content. The HIG says so in words ("otherwise the primary view moves atop the secondary view"), the 111463 sample collapses the *primary* while it is stacked, and the API documentation agrees (checked 2026-10-29): `OverlayArrangementViewStyle` is "A style that layers the primary view over the secondary view", and "In a stacked overlay arrangement, the arrangement view places the primary view above the secondary view in the z-axis." One DTS forum answer says the opposite ("positions the secondary view on top of the primary view in portrait", [847816](https://developer.apple.com/forums/thread/847816)); treat it as the outlier, and still let `overlayArrangementZIndex` / `state(for:)?.zIndex` decide at runtime ("Views with a higher z-index are rendered on top of views with a lower z-index").
 
 The HIG names one capability that still has no spelling: "You can limit which axes a split arrangement uses, and **collapse the secondary view in an overlay arrangement when you don't want it to appear**." `.axes(…)` covers the first half. The collapse half was searched for in the **iOS 27.1 SDK on 2026-09-21 and is not there** — no modifier, no style member, nothing on `ArrangementView`. Until Apple ships one, express "no secondary right now" by not putting the view in the arrangement, or by giving the secondary an empty body. Do not invent a name.
 

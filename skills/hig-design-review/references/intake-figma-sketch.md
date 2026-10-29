@@ -44,7 +44,7 @@ Shape: `{ name, lastModified, nodes: { "<id>": { document: { id, name, type, abs
 ### Steps
 
 1. `check_api_key` once. Missing key → stop and ask the user to configure the Figma MCP token; do not guess from screenshots.
-2. **Frames.** `get_file(fileKey, depth: 2)` → `document.children` (pages) → each page's `children` of type `FRAME` / `SECTION` are the screens. Record `name`, `id`, `absoluteBoundingBox.width/height` for **every page** — Duo mockups often sit on a separate page ("Duo", "Foldable", …) that the given node ids do not cover; list all frames whose width or height is ≈ 466 / 678 / 626 / 890 before concluding "no Duo frames" (D1). More than ~12 screens → show the list and ask which to review.
+2. **Frames.** `get_file(fileKey, depth: 2)` → `document.children` (pages) → each page's `children` of type `FRAME` / `SECTION` are the screens. Record `name`, `id`, `absoluteBoundingBox.width/height` for **every page** — Duo mockups often sit on a separate page ("Duo", "Foldable", …) that the given node ids do not cover; list all frames whose width or height is ≈ 466 / 678 / 669 / 951 (or 626 / 890, the size older guidance derived) before concluding "no Duo frames" (D1). More than ~12 screens → show the list and ask which to review.
 3. **Structure.** `get_file_nodes(fileKey, node_ids: [...])` per screen **without `depth`** — rows, pills, links and bar items sit 6–15 levels deep, `depth: 4` misses them; use `depth` only to enumerate a section's frames. Extract:
    - `absoluteBoundingBox` of the frame and of direct children → where bars, lists and controls sit (top / bottom / centre band);
    - `layoutMode` (`HORIZONTAL` / `VERTICAL`), `paddingLeft/Right/Top/Bottom`, `itemSpacing` → auto-layout vs pinned pixels;
@@ -61,14 +61,15 @@ Shape: `{ name, lastModified, nodes: { "<id>": { document: { id, name, type, abs
 | Frame size (pt) | Treat as | Notes |
 |---|---|---|
 | 320–430 wide | compact — phone; a proxy for the **Duo outer display**, not a Duo mockup | the outer display is wider and shorter than a phone |
-| ≈ 466 × 678 | compact — **Duo outer, portrait** (derived) | vertical bars on the hardware side |
-| ≈ 678 × 466 | compact × compact — Duo outer, landscape (derived) | vertical bars |
-| ≈ 626 × 890 | **regular × regular — Duo inner, portrait** (derived) | the only pose with **horizontal** bars; when folded (table pose) the hinge is horizontal at y ≈ 445 |
-| ≈ 890 × 626 | **regular × regular — Duo inner, landscape / book pose** (derived) | vertical bars; when folded the hinge is **vertical at x ≈ 445** — the fold band is a vertical strip |
-| ≈ 313 × 890 or ≈ 445 × 626, next to another app | compact — **Split View half** (derived) | asymmetric safe area on the divider side |
+| ≈ 466 × 678 | compact — **Duo outer, portrait** (measured) | vertical bars on the hardware side |
+| ≈ 678 × 466 | compact × compact — Duo outer, landscape (measured) | vertical bars |
+| ≈ 669 × 951 | **regular × regular — Duo inner, portrait** (measured) | the only pose with **horizontal** bars; when folded (table pose) the hinge is horizontal at y ≈ 475 |
+| ≈ 951 × 669 | **regular × regular — Duo inner, landscape / book pose** (measured) | vertical bars; when folded the hinge is **vertical at x ≈ 475** — the fold band is a vertical strip |
+| ≈ 626 × 890 / 890 × 626 | Duo inner, from older guidance (panel pixels ÷ 3) | review as inner frames; D2: ask for 669 × 951 |
+| ≈ 334 × 951 or ≈ 475 × 669, next to another app | compact — **Split View half** (derived) | asymmetric safe area on the divider side |
 | 744–1032 wide | regular — iPad | not a Duo mockup |
 
-Trust `absoluteBoundingBox` over frame names: files name 890 × 626 frames "Portrait", or call the app's own folded two-pane arrangement "Split View". Label every derived number "derived @3x, not Apple-stated" in the report. A file whose frames are all 320–430 wide — on every page — has **no Duo mockup** (D1).
+Trust `absoluteBoundingBox` over frame names: files name 951 × 669 frames "Portrait", or call the app's own folded two-pane arrangement "Split View". Label the sizes "measured on the simulator, not Apple-stated" in the report, and the Split View half "derived". A file whose frames are all 320–430 wide — on every page — has **no Duo mockup** (D1).
 
 ## Sketch
 
@@ -84,7 +85,7 @@ Without `sketchtool`: the designer exports artboards (PNG @2x or PDF) and names 
 
 ## Measuring from images
 
-- Reference the frame width: on a 626-wide @2x export, 1 pt = 2 px; measure tap targets and gutters relative to that.
+- Reference the frame width: on a 669-wide @2x export, 1 pt = 2 px; measure tap targets and gutters relative to that.
 - Tap-target and type-size checks need the JSON (Figma) or a labelled artboard (Sketch); from a bare image report them as NOTE "estimate".
 - Contrast: compute from the hex values in `fills`; formula in `hig-general-checklist.md` §Color.
 

@@ -7,6 +7,56 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.3.2] — 2026-10-29
+
+Xcode 27.2 RC becomes the required toolchain, and three sarunw.com articles (2026-10-16, 10-22 and
+10-26) are folded in after re-measuring everything they claim. The measurements were taken on the iPhone
+Duo simulator with Xcode 27.2 RC: the iOS 27.2 Duo runtime (24B91014) and the iOS 27.1 runtime (24A94425).
+They also exposed a wrong inner-display size that the plugin had carried since 0.9.0.
+
+### Changed
+
+- **Toolchain: Xcode 27.2 RC or later**, with the iOS 27.2 simulator runtimes (owner's decision). The
+  gate still probes the SDK for the Duo headers first, then requires version 27.2+; Xcode 27.1 is
+  reported as unsupported, with a link to install 27.2 RC. The gate now finds Xcodes with `find`
+  instead of a glob, which zsh aborted on no match.
+- **iOS 27.1 stays a supported runtime** — the Duo shipped with it. New §Known iOS 27.1 bugs lists
+  workarounds that also run on 27.2. It also explains how to keep Duo-only code off 27.1: raise the
+  hinge gate to `#available(iOS 27.2, *)`.
+
+### Fixed
+
+- **The inner display is 669 × 951 pt, not 626 × 890.** The old figure was the panel's 1878 × 2670
+  pixels divided by 3. The simulator lays apps out on 669 × 951 pt and renders 2007 × 2853 px
+  (`nativeScale` 3), which is exactly the App Store screenshot size. The new figures run through the skills,
+  the design-review rules, the Figma intake table, the designers' guide and the audit:
+  - the fold band is 40 pt wide and centred at 475 pt, not 445;
+  - the Split View half is now ≈ 334 pt (derived);
+  - the audit now flags render tests still at 313 or 626 pt.
+- **The flat fold.** Talk 111463 says the inactive division region has zero width. The simulators
+  still report the 40 pt band, so the references now say to test `isActive`, never the width.
+- **Overlay z-order.** The `ArrangementView` documentation sides with the HIG: "the arrangement view
+  places the primary view above the secondary view in the z-axis". DTS forum answer 847816 is the
+  outlier.
+
+### Added
+
+- **`contentMargins(for: .container)`** (`ContentMarginGuide`, iOS 27.1) — SwiftUI's counterpart of
+  `layoutMarginsGuide`. Included: Apple's documentation, code typechecked at deployment targets 27.1 and
+  17.0, and a measured table of SwiftUI and UIKit margins per pose. Beside a vertical bar the margin is 0.
+  Rule 14 caveat: on iPad the guide gives 20 pt, so a swap from `.padding(16)` goes behind the hinge gate.
+- **Size classes inside `ArrangementView` panes**, measured per pose on Duo and iPad. The split axis
+  goes compact. The iOS 27.1 bug is confirmed: the view passed straight to the arrangement reads the
+  window's size classes, and `splitArrangementAxis` is `nil` there; wrapping each child in a container
+  works around it.
+- **Placement matters.** Inside a `VStack`, the panes kept the window's size classes on iPad and the
+  closed Duo; as the root of a `NavigationStack` they got their own.
+- **From the `ArrangementView` documentation:**
+  - a closed Duo in landscape shows only the primary view;
+  - equal pane sizes by default;
+  - the containers to keep apart (scroll view, navigation split view, grid; no navigation split view or
+    tab view inside).
+
 ## [1.3.1] — 2026-10-29
 
 Closes the one check 1.3.0 left open: the hinge gate measured on the Xcode 27.2 RC simulators.

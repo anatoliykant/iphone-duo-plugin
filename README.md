@@ -23,9 +23,10 @@ Three components:
   CLI in Claude Code, Cursor, Codex and other supported hosts — see option 1.
 - **macOS with Xcode Command Line Tools** for the toolchain gate (`xcodebuild -version`,
   `xcrun --sdk iphoneos --show-sdk-version`). The grep audit itself runs anywhere; the toolchain gate
-  is what decides whether iOS 27.1 APIs may be written yet. **Xcode 27.1** (released 2026-10-15; 27.2 RC also works) is
-  what ships the iOS 27.1 SDK, the iPhone Duo simulator and Apple's App Resizability agent skill;
-  without it the skills do the resizability work and defer the Duo-only APIs.
+  is what decides whether iOS 27.1 APIs may be written yet. **Xcode 27.2 RC or later**, with its iOS 27.2
+  simulator runtimes, is required for Duo work: it carries the Duo APIs, the iPhone Duo simulator and
+  Apple's App Resizability agent skill, and fixes simulator bugs of Xcode 27.1, which the plugin no
+  longer supports. Without it the skills do the resizability work and defer the Duo-only APIs.
 - **`jq`** — reading Figma JSON and SDK dumps without loading them into context.
 - **`python3`** — a few reference snippets use it for plist and geometry math.
 - **Network access** — the design review fetches HIG pages live (their JSON twins) rather than
@@ -232,7 +233,9 @@ the Xcode 27.1 beta release notes, and the first two iPhone Duo Group Labs (Meet
 pointed to, typechecked against the same SDK. On 2026-10-28: the fourth lab (288), Apple's DTS summary
 of the labs on the forums, the three 2026-09-23 forum Q&As, the "Three steps to make your app shine on
 iPhone Duo" page, the Xcode 27.1 / 27.2 RC and iOS 27.2 release notes, TN3192, and the App Store news
-of 2026-10-05 (the "optimized for iPhone Duo" badge and the April 2027 screenshot requirement). Labs are
+of 2026-10-05 (the "optimized for iPhone Duo" badge and the April 2027 screenshot requirement). On 2026-10-29
+Xcode 27.2 RC became the required toolchain, and three sarunw.com articles were folded in after every claim
+was re-measured on the Duo simulator. The re-measurement corrected the inner display to 669 × 951 pt. Labs are
 transcribed from Apple's own captions and are cited for guidance, never for API spellings.
 
 `skills/iphone-duo/references/testing-and-sources.md` §Freshness lists what is still open and the

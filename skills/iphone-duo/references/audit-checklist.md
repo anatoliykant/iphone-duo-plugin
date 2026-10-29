@@ -28,7 +28,7 @@ xcodebuild -version | head -1; xcode-select -p; xcrun --sdk iphoneos --show-sdk-
 ls /Applications | grep -i xcode
 ```
 
-**Run the toolchain gate first** (`testing-and-sources.md` §Toolchain gate) and report its result as a warning at the top. It probes the SDK for `UIHingeInteraction.h` / `UIViewReservedRegion.h` rather than comparing versions — Xcode 27.2 beta 1 shipped two days before 27.1 beta 1 with no Duo APIs (27.2 RC has them), so a numeric test is not reliable. No Duo SDK → every new-API recommendation (reserved regions, `ArrangementView`, hinge, vertical-bar API, dual cameras, scene accessories) goes into the report's **Pending iOS 27.1 SDK** section, not into fixes; the safe part (resizability, `UIScreen.main`, orientation/idiom, safe area, standard containers, scene lifecycle) is actionable on any SDK. Duo SDK present → drop the Pending section. Present but not active → name the Xcode and hand over `DEVELOPER_DIR=…`.
+**Run the toolchain gate first** (`testing-and-sources.md` §Toolchain gate) and report its result as a warning at the top. Required: **Xcode 27.2 RC or later** with the iOS 27.2 simulator runtimes; Xcode 27.1 is unsupported — say so and ask for 27.2 RC. The gate probes the SDK for `UIHingeInteraction.h` / `UIViewReservedRegion.h` before it checks the version — Xcode 27.2 beta 1 shipped two days before 27.1 beta 1 with no Duo APIs (27.2 RC has them), so a numeric test alone is not reliable. No Duo SDK → every new-API recommendation (reserved regions, `ArrangementView`, hinge, vertical-bar API, dual cameras, scene accessories) goes into the report's **Pending iOS 27.1 SDK** section, not into fixes; the safe part (resizability, `UIScreen.main`, orientation/idiom, safe area, standard containers, scene lifecycle) is actionable on any SDK. Duo SDK present → drop the Pending section. Present but not active → name the Xcode and hand over `DEVELOPER_DIR=…`.
 
 ## Severity
 
@@ -78,7 +78,7 @@ A `static`/stored property captured at launch never updates when the device open
 G '(\.width|screenWidth|Width)\s*(<|>|<=|>=|==)\s*[0-9]{3}'
 ```
 
-Buckets like `< 350` / `> 400` were designed for phone widths; the inner display (~626 pt derived) and Split View (~313 pt) fall outside them. Follow up: grep the bucket type's call sites (e.g. `G 'YourWidthBucket\.current'`) to size the blast radius; also check `IBInspectable` per-bucket constraint extensions. Fix → `layout-size-classes-safe-area.md` §Size classes. Regex behavior: few declarations, many call sites — the blast radius comes from the follow-up grep, not from this one.
+Buckets like `< 350` / `> 400` were designed for phone widths; the inner display (669 pt) and Split View (~334 pt) fall outside them. Follow up: grep the bucket type's call sites (e.g. `G 'YourWidthBucket\.current'`) to size the blast radius; also check `IBInspectable` per-bucket constraint extensions. Fix → `layout-size-classes-safe-area.md` §Size classes. Regex behavior: few declarations, many call sites — the blast radius comes from the follow-up grep, not from this one.
 
 ### 5 · User-interface idiom — MEDIUM
 
@@ -198,7 +198,7 @@ G 'AVCaptureDevice|AVCaptureSession|AVCaptureVideoPreviewLayer|RotationCoordinat
 G '\.frame\((width|maxWidth|minWidth):\s*[3-9][0-9]{2}' | grep -vE 'Tests/|Preview'
 ```
 
-A fixed `width: 320` inside a ~313 pt Split View pane clips. `maxWidth:` is usually fine (cap, not floor) — report separately. Check for `#Preview` context in production files. Fix → `layout-size-classes-safe-area.md` §Fixed widths. Regex behavior: `#Preview` bodies inside production files survive the path filter and are a large share of the hits — check the enclosing context.
+A fixed `width: 320` inside a ~334 pt Split View pane clips. `maxWidth:` is usually fine (cap, not floor) — report separately. Check for `#Preview` context in production files. Fix → `layout-size-classes-safe-area.md` §Fixed widths. Regex behavior: `#Preview` bodies inside production files survive the path filter and are a large share of the hits — check the enclosing context.
 
 ### 16 · Device-size literals — LOW / manual
 
@@ -253,7 +253,7 @@ G 'navigationSplitViewColumnWidth\(\s*[0-9]|preferred(Primary|Supplementary)Colu
 G 'GridItem\(\.adaptive' | wc -l      # INFO: adaptive grids already in use
 ```
 
-A literal column count gives the same 2 columns at ~313 pt (cramped) and ~626 pt (sparse); a fixed sidebar width ignores Split View. `navigationSplitViewColumnWidth(min:ideal:max:)` is fine. Read the hits for the regular-width count and its parity (HIG: even). Fix → `layout-size-classes-safe-area.md` §Adaptive toolbox (column-count note), `arrangements-and-reserved-regions.md` §Migration recipe step 6. Regex behavior: the single-line regex misses column lists spread over several lines — the per-file count (≥ 2 `GridItem` in one file) is what catches them.
+A literal column count gives the same 2 columns at ~334 pt (cramped) and 669 pt (sparse); a fixed sidebar width ignores Split View. `navigationSplitViewColumnWidth(min:ideal:max:)` is fine. Read the hits for the regular-width count and its parity (HIG: even). Fix → `layout-size-classes-safe-area.md` §Adaptive toolbox (column-count note), `arrangements-and-reserved-regions.md` §Migration recipe step 6. Regex behavior: the single-line regex misses column lists spread over several lines — the per-file count (≥ 2 `GridItem` in one file) is what catches them.
 
 ### 22 · Duplicated compact / expanded hierarchies — MEDIUM / manual
 
@@ -268,10 +268,11 @@ Then read every `horizontalSizeClass == .regular` / idiom branch from categories
 ```bash
 echo "readableContentGuide $(G 'readableContentGuide' | wc -l)  numeric caps $(G 'frame\((maxWidth|width):\s*[0-9]' | grep -vE 'Tests/|Preview' | wc -l)  infinity $(G 'maxWidth:\s*\.infinity' | grep -vE 'Tests/|Preview' | wc -l)"
 grep -rnoE 'ViewImageConfig\.\w+|width:\s*[0-9]{3}' --include='*.swift' --exclude-dir=Pods . | grep -E 'Tests/|Snapshot' | grep -oE '(\.\w+|[0-9]{3})$' | sort | uniq -c | sort -rn
-G '\b(313|466|626)\b' | grep -E 'Tests/' | wc -l      # 0 = the derived Duo widths are in no render test yet
+G '\b(334|466|669)\b' | grep -E 'Tests/' | wc -l      # 0 = the Duo widths are in no render test yet
+G '\b(313|626)\b' | grep -E 'Tests/' | wc -l          # > 0 = tests at the pre-1.3.2 derived widths: move them to 334 / 669
 ```
 
-Facts for the fix plan, not defects: no `readableContentGuide` and no numeric width caps in an app with long copy → "no readable-width caps anywhere"; render/snapshot tests at ≤ 2 distinct widths → "layouts rendered at ≤ 2 widths"; 0 hits for 313/466/626 → "derived Duo widths untested". Whether wide text actually stretches is **manual review only** (onboarding, settings, legal, articles). Regex behavior: `readableContentGuide` at 0 next to a high `maxWidth: .infinity` count is the signal to report; in every codebase audited so far the derived widths 313/466/626 appear in no test.
+Facts for the fix plan, not defects: no `readableContentGuide` and no numeric width caps in an app with long copy → "no readable-width caps anywhere"; render/snapshot tests at ≤ 2 distinct widths → "layouts rendered at ≤ 2 widths"; 0 hits for 334/466/669 → "Duo widths untested". Whether wide text actually stretches is **manual review only** (onboarding, settings, legal, articles). Regex behavior: `readableContentGuide` at 0 next to a high `maxWidth: .infinity` count is the signal to report; in every codebase audited so far the Duo widths (334/466/669, or 313/626 from older guidance) appeared in no test.
 
 ### 24 · Size-class overrides — HIGH
 
@@ -361,6 +362,6 @@ G 'UIDevice\.current\.' | grep -oE 'UIDevice\.current\.\w+' | sort | uniq -c
 10. Split View + multiple scenes: handle scene-request errors; new windows are inner-display only.
 11. Camera: virtual front camera vs direction coordinator; rotation coordinator then disable sensor orientation compensation; preview gravity/aspect.
 12. `UIRequiresFullScreen`: don't add it "for Duo"; keep only as a games escape hatch — product decision. Apple calls the key deprecated (TN3192).
-13. Run Xcode 27.1's **App Resizability** agent skill (the ex-modernization skill, present only from 27.1; with Xcode 27.1 it "supports SwiftUI and iPhone Duo" per the DTS summary; export it for other tools with `xcrun agent skills export --output-dir <path>`). Apple's "Three steps" page: "The skill finds most issues, but not all of them." 
+13. Run Xcode's **App Resizability** agent skill (the ex-modernization skill, present from 27.1 — use it from Xcode 27.2 RC or later; with Xcode 27.1 it "supports SwiftUI and iPhone Duo" per the DTS summary; export it for other tools with `xcrun agent skills export --output-dir <path>`). Apple's "Three steps" page: "The skill finds most issues, but not all of them." 
 
 Shorter mnemonic (external review, consistent with Apple): Resizability → Size classes → Standard containers → Safe areas → Reserved regions → Arrangements → Hinge (effects only).

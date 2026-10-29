@@ -10,16 +10,17 @@ Status legend used across all references: **VERBATIM** = copied from the Code se
 |---|---|---|
 | Diagonal | 5.4" (5.36" measured) | 7.6" (7.58" measured) |
 | Pixels (Apple) | 1398 × 2034 @ 460 ppi | 1878 × 2670 @ 430 ppi |
-| Points @3x (**derived, not Apple-stated**) | 466 × 678 pt | 626 × 890 pt |
+| Points (app window, **measured** on the Duo simulator, Xcode 27.2 RC) | 466 × 678 pt | 669 × 951 pt |
+| Rendered pixels @3x | 1398 × 2034 | 2007 × 2853 — the App Store screenshot size, not the panel |
 | Aspect ratio (derived) | ~1.45 | ~1.42 |
-| Size classes | portrait: compact W × regular H; landscape: compact × compact | **regular × regular** — first iPhone ever |
+| Size classes (measured on the simulator) | portrait: compact W × regular H; landscape: compact × compact | **regular × regular** — first iPhone ever |
 | Honors `supportedInterfaceOrientations` | yes (as other iPhones) | **no** |
 | Bars (iOS 27.1 SDK) | vertical, on the hardware side; in Split View along each app's outer edge; **no RTL flip** | landscape: vertical; **portrait: horizontal** (the only pose with horizontal bars) |
 | Front camera | 12 MP ultrawide, corner, always visible; Dynamic Island grows **vertically** | under-display ultrawide (first on iPhone), visible only while a camera session uses it — including another app's, such as a FaceTime call, over your app |
 
 Both panels: OLED Super Retina XDR, ProMotion up to 120 Hz, 1000 nits typical / 1600 HDR / 3000 outdoor. Inner panel adds nano-texture.
 
-The outer display is wider and shorter than a standard iPhone — that is why bars move to the side (preserves vertical space). "Outer landscape = compact × compact" is a third-party detail, not Apple-confirmed.
+The outer display is wider and shorter than a standard iPhone — that is why bars move to the side (preserves vertical space). "Outer landscape = compact × compact" is not stated by Apple; the Duo simulator reports it (Xcode 27.2 RC, iOS 27.1 and 27.2 runtimes, 2026-10-29).
 
 ## Poses (HIG terminology)
 
@@ -31,7 +32,7 @@ Apple says **pose** for the physical configuration and **hinge status** for the 
 | Partially folded like a book | inner display, hinge vertical | regular × regular + active **division** region |
 | Placed on a surface (laptop / table) | inner display, hinge horizontal | regular × regular + active division region; top = content viewed from afar, bottom = controls |
 | Standing on its edges (tent) | inner display when it stands open like a book; the outer display when it stands folded | regular × regular inside; outside, compact width — and the outer display honors your orientations, so Apple's forum answer suggests landscape support there: "iPhone Duo is a great opportunity to support landscape orientation, as people may want to set the phone down like a tent" ([847851](https://developer.apple.com/forums/thread/847851)) |
-| Fully open (flat) | inner display | regular × regular; division region **inactive**, zero width |
+| Fully open (flat) | inner display | regular × regular; division region **inactive** — the talk says it then has zero width, but the simulator still reports the 40 pt band; test `isActive`, not the width |
 
 **Do not design a layout per pose.** Design for compact and regular size classes; let reserved regions and arrangements handle the fold. Hinge status/angle is for effects only (`hinge-scenes-camera.md`).
 
@@ -97,7 +98,7 @@ Apple never says to add the key "for Duo" — it is a games escape hatch. Removi
 
 - **Badge**: "When you submit iPhone Duo screenshots in App Store Connect, your App Store product page will display a badge to let people know your app is optimized for iPhone Duo."
 - **Requirement**: the specifications page — "Starting in April 2027, screenshots will be required for any app using the iOS 27.1 SDK or later." The news post words it more broadly: "Starting April 2027, any apps or games submitted will need to include screenshots for iPhone Duo."
-- **Screenshot sizes**, iPhone Duo category: outer 1398 × 2034 and 2034 × 1398; inner **2007 × 2853** and 2853 × 2007 — the inner size does **not** match the 1878 × 2670 panel spec, and Apple does not explain it.
+- **Screenshot sizes**, iPhone Duo category: outer 1398 × 2034 and 2034 × 1398; inner **2007 × 2853** and 2853 × 2007 — the app's 669 × 951 pt window at @3x, which is also how the Duo simulator renders the inner display (`nativeBounds` 2007 × 2853, `nativeScale` 3). The 1878 × 2670 panel spec has fewer pixels; how hardware maps one onto the other is not documented.
 - **App previews**: device resolutions 2034 × 1398 and 2853 × 2007; accepted resolutions 886 × 1920 (portrait) and 1920 × 886 (landscape), the same as the large iPhones ([app preview specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/app-preview-specifications)).
 - **Tools**: a new preview tool in App Store Connect shows screenshots, product page headers and other metadata as they appear on iPhone Duo; a featuring nomination can state that the app is optimized for iPhone Duo, "including support for all device poses" (Three steps page).
 - **Also from April 2027**: uploads must be built with the iOS 27 SDK and target iOS 15 or later (submitting page) — the date the scene-lifecycle requirement reaches every app.
@@ -131,7 +132,7 @@ A20 Pro, hinge of 100+ components, magnet closure, dual batteries, Grade 5 titan
 
 | Claim | Source | Status |
 |---|---|---|
-| 466 × 678 / 626 × 890 pt | arithmetic @3x; blakecrosley.com, pasqualepillitteri.it | derived — no Apple page states point sizes |
+| 466 × 678 / 669 × 951 pt | app window measured on the Duo simulator (Xcode 27.2 RC, iOS 27.1 and 27.2 runtimes, 2026-10-29); @3x of the App Store screenshot sizes | **measured** — no Apple page states point sizes. Plugin versions before 1.3.2 gave 626 × 890 (the panel's pixels ÷ 3, after blakecrosley.com and pasqualepillitteri.it) — wrong |
 | Touch ID instead of Face ID | third parties | **confirmed** 2026-10-28 by the specs page: "Touch ID — Fingerprint sensor built into the side button" |
 | Apple Pencil | lab 288 35:59, a question saying it "isn't supported at launch" (not answered) | the specs page says "Supports Apple Pencil (USB-C)", footnoted "Hover is not supported when using Apple Pencil (USB-C) with iPhone Duo" — follow the specs page; no Pencil hover on Duo |
 | Ships on iOS 27.1 vs iOS 27 | newsroom vs specs page | 27.1 is the SDK target in every talk |
@@ -141,7 +142,7 @@ A20 Pro, hinge of 100+ components, magnet closure, dual batteries, Grade 5 titan
 | WebKit and hinge position | lab 287 34:17, "My understanding is that … WebKit supports that" | **answered** by the DTS summary: "the Viewport Segments and Device Posture APIs. Both are opt-in experimental features in iOS 27.1, and can be enabled for testing in Settings > Apps > Safari > Advanced > Feature Flags." Not on by default — web content must work without them, and there is no way to detect "an iPhone Duo" from the web |
 | Setting `XCUIDevice.shared.orientation` does not rotate the Duo simulator | a developer's question in lab 287 32:07; Apple did not contradict it | unverified locally — reading the orientation works (`testing-and-sources.md` §UI tests) |
 | `devicectl device appResize` / fold CLI | bitrise.io | **corrected 2026-10-28**: `devicectl device appResize` (`start` / `set` / `observe`) and `devicectl device orientation` are real Apple commands, present since Xcode 27.0 — resizable app sessions on a device display and simulated orientation, not a fold. There is still no fold or pose command (`testing-and-sources.md`) |
-| Inner screenshot 2007 × 2853 | App Store Connect | unexplained mismatch with 1878 × 2670 |
+| Inner screenshot 2007 × 2853 vs panel 1878 × 2670 | App Store Connect, specs page | **explained 2026-10-29**: 2007 × 2853 is the 669 × 951 pt interface at @3x, as the simulator renders it; whether hardware scales it down to the panel is unverified |
 | HIG typography / tap-target numbers for Duo | — | **none Duo-specific** — the general values apply; Apple's answer on camera controls in the forum Q&A uses the standard "accessible hit region of at least 44x44 points" ([847715](https://developer.apple.com/forums/thread/847715)) |
 | `UIRequiresFullScreen` exact discrete steps | WWDC26 278 prose | verify in Device Hub |
 | Which display faces down in a seated pose is detectable | lab 285 10:10, panel unsure | the DTS summary answers "Does my app need to know which face is up? No." For sensors, `CMMotionManager.deviceMotionBody` corrects motion for the display your UI is on (`hinge-scenes-camera.md` §Motion and heading) |

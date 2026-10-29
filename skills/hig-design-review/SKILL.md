@@ -16,9 +16,9 @@ corresponding block and stop — no repo reads, toolchain gate, network calls or
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `hig-design-review 1.3.1` · Duo rules D1–D32 · HIG re-checked 2026-10-28, text unchanged since 2026-09-21 (page change log 2026-09-09)
+> `hig-design-review 1.3.2` · Duo rules D1–D32 · HIG re-checked 2026-10-28, text unchanged since 2026-09-21 (page change log 2026-09-09)
 
-<!-- skill-version: 1.3.1 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.3.2 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
 The literal lives in the skill body so it also works in skills-only installs without either
 plugin manifest. CI keeps it equal to root `plugin.json` (Codex / Agent Plugins) and
@@ -35,7 +35,7 @@ searching for manifests in the user's project.
 >
 > **Checks** general iOS (layout, safe areas, typography and Dynamic Type, colour and contrast, accessibility, navigation and bars, sheets, the iOS 26 design system) plus **D1–D32** for iPhone Duo: both displays designed, vertical bars, bar item order and icons, fold avoidance, even grid columns, camera regions, arrangements, Split View, pose transitions, scroll direction across the fold, search placement.
 >
-> **Draw before review** — derived @3x, label them as such: outer 466 × 678 · inner 626 × 890 portrait · inner 890 × 626 landscape (fold at x ≈ 445) · Split View half ≈ 313 × 890. At least one compact and one regular frame per screen. Apple's Figma and Sketch kits: developer.apple.com/design/resources/
+> **Draw before review** — app-window sizes measured on the Duo simulator: outer 466 × 678 · inner 669 × 951 portrait · inner 951 × 669 landscape (fold at x ≈ 475) · Split View half ≈ 334 × 951 (derived). At least one compact and one regular frame per screen. Apple's Figma and Sketch kits: developer.apple.com/design/resources/
 >
 > **Needs** the Figma MCP server for the Figma path (setup for your host is in `references/intake-figma-sketch.md`) and network access — HIG pages are fetched live, never quoted from memory. Read-only: it comments on Figma nodes only when you ask, and never edits a design.
 >
@@ -47,7 +47,7 @@ UI work that starts from a mockup which contradicts the HIG gets rebuilt twice: 
 
 Two rules of evidence:
 - **General HIG content is fetched live**, never quoted from memory: the pages are large and change. Use the JSON twins of HIG pages (`references/hig-general-checklist.md` §How to fetch) and quote the sentence you rely on.
-- **Duo rules come from `references/duo-design-rules.md`** — every rule carries its HIG anchor or tech-talk timecode. Apple publishes **no Duo-specific typography, spacing or tap-target numbers**; never invent them. Screen sizes in points are **derived** (outer 466 × 678; inner 626 × 890 portrait / 890 × 626 landscape — the book pose, hinge vertical at x ≈ 445; Split View half ≈ 313 in portrait, ≈ 445 in landscape) and must be labelled as such in every report. Trust `absoluteBoundingBox` over frame names.
+- **Duo rules come from `references/duo-design-rules.md`** — every rule carries its HIG anchor or tech-talk timecode. Apple publishes **no Duo-specific typography, spacing or tap-target numbers**; never invent them. Screen sizes in points are **measured app windows, not Apple-stated** (outer 466 × 678; inner 669 × 951 portrait / 951 × 669 landscape — the book pose, hinge vertical at x ≈ 475; Split View half ≈ 334 in portrait, ≈ 475 in landscape, derived) and must be labelled as such in every report. Trust `absoluteBoundingBox` over frame names.
 
 ## Inputs
 
@@ -62,7 +62,7 @@ A Duo review needs at least one frame per target class: compact (outer display) 
 
 ## Procedure
 
-1. **Intake** — collect frames, sizes, structure, renders and existing comments (`references/intake-figma-sketch.md`). Map every frame to a size class (compact / regular / Split View half) by its bounding box. Before judging D1, scan **every page** of the file for Duo-sized frames (≈ 466 / 678 / 626 / 890 pt) or pages named Duo / fold / hinge — Duo mockups often live on their own page, outside the node ids you were given.
+1. **Intake** — collect frames, sizes, structure, renders and existing comments (`references/intake-figma-sketch.md`). Map every frame to a size class (compact / regular / Split View half) by its bounding box. Before judging D1, scan **every page** of the file for Duo-sized frames (≈ 466 / 678 / 669 / 951 pt, and 626 / 890 from older guidance) or pages named Duo / fold / hinge — Duo mockups often live on their own page, outside the node ids you were given.
 2. **Inventory per screen** — navigation pattern (tab bar, nav bar, sidebar, modal), bars and their items (title + symbol?), lists / grids (column count), text blocks (longest line), interactive controls near the frame's horizontal centre, custom chrome (hand-drawn bars, floating panels), safe-area treatment (content under the camera / home indicator?).
 3. **General HIG pass** — walk `references/hig-general-checklist.md`; fetch the relevant HIG page JSON for each area you flag and cite the sentence.
 4. **Duo pass** — walk `references/duo-design-rules.md` D1–D32 for every screen that will ship on Duo.
