@@ -285,7 +285,7 @@ These are **auto-generated captions, not an edited transcript**. Use them for in
 | https://developer.apple.com/documentation/avfoundation/registering-a-camera-capture-accessory-on-iphone-duo | scene-accessory article with code, SwiftUI **and** UIKit |
 | https://developer.apple.com/documentation/updates/swiftui · /uikit · /avkit | "September 2026" sections enumerate every new Duo symbol |
 | https://developer.apple.com/documentation/xcode-release-notes/xcode-27_1-release-notes · /xcode-27_2-release-notes | Xcode 27.1 and 27.2 RC release notes — Simulator and Device Hub known issues, Mac Catalyst issue, Previews Display group |
-| https://developer.apple.com/documentation/ios-ipados-release-notes/ios-ipados-27_2-release-notes | iOS 27.2 — default `UIView` layout margins are zero on iOS 27.1 and later |
+| https://developer.apple.com/documentation/ios-ipados-release-notes/ios-ipados-27_2-release-notes | iOS 27.2 — default `UIView` layout margins are zero on iOS 27.1 and later (measured on the 27.2 RC simulators: Duo only) |
 | https://developer.apple.com/documentation/technotes/tn3192-migrating-your-app-from-the-deprecated-uirequiresfullscreen-key | TN3192 — `UIRequiresFullScreen` deprecated, discrete resizing, `UIRequiresFullScreenIgnoredStartingWithVersion`, launch screen required |
 | https://developer.apple.com/app-store/submitting/ | April 2027: iOS 27 SDK minimum, target iOS 15+ |
 | https://developer.apple.com/videos/play/wwdc2026/278/ | "Modernize your UIKit app" — scene lifecycle requirement, `displayScale`, `effectiveGeometry`, `UIRequiresFullScreen` |

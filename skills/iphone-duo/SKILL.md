@@ -16,9 +16,9 @@ corresponding block and stop — no repo reads, toolchain gate, network calls or
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `iphone-duo 1.3.0` · references SDK-verified 2026-10-28 against iOS 27.1 (Xcode 27.1, 27A9275) and iOS 27.2 RC · labs 285–288 · design rules D1–D32
+> `iphone-duo 1.3.1` · references SDK-verified 2026-10-28 against iOS 27.1 (Xcode 27.1, 27A9275) and iOS 27.2 RC · labs 285–288 · design rules D1–D32
 
-<!-- skill-version: 1.3.0 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.3.1 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
 The literal lives in the skill body so it also works in skills-only installs without either
 plugin manifest. CI keeps it equal to root `plugin.json` (Codex / Agent Plugins) and
@@ -59,7 +59,7 @@ Research date 2026-09-10; first SDK check 2026-09-21 against Xcode 27.1 beta 1; 
 - SDK tiers (Apple, "Three steps to make your app shine on iPhone Duo"): **iOS 26 SDK or earlier** — open, the app sits in the center with empty space around it; closed, it stays left of the status bar and camera. **iOS 27 SDK** — fills most of the inner display but still avoids the status bar on the right edge. **iOS 27.1 SDK** — full display and **vertical bars**. Duo layout APIs (bar axis/edge, reserved regions, arrangements, hinge) are 27.1; `ToolbarOverflowMenu`, `visibilityPriority`, `.topBarPinnedTrailing`, `defaultTabBarPlacement`, `.sceneAccessory` already ship in 27.0.
 - **UIScene lifecycle is required** with the iOS 27 SDK — apps without it do not launch (TN3187) — and **from April 2027 uploads must be built with the iOS 27 SDK** (App Store submitting page), so the old SDK stops being an escape hatch.
 - **App Store**: Duo screenshots (1398 × 2034 outer, 2007 × 2853 inner, both orientations) earn an "optimized for iPhone Duo" badge on the product page, and become **required from April 2027** for apps built with the iOS 27.1 SDK or later.
-- On iOS 27.1 and later a plain `UIView`'s default `layoutMargins` are **zero** (iOS 27.2 release notes); view-controller views keep `systemMinimumLayoutMargins`, subviews inherit them only with `preservesSuperviewLayoutMargins = true`.
+- A plain `UIView`'s default `layoutMargins` are **zero** "on iOS 27.1 and later" (iOS 27.2 release notes) — measured on the Xcode 27.2 RC simulators only on iPhone Duo; iPad and iPhone 18 Pro Max on iOS 27.2 still get 8 pt; view-controller views keep `systemMinimumLayoutMargins`, subviews inherit them only with `preservesSuperviewLayoutMargins = true`.
 - **All apps participate in Split View** (50/50) and video + app stacking. First iPhone with multiple scenes; **new windows can only be created on the inner display**.
 - `UIScreen.main` is "ambiguous and will be deprecated".
 - Bars are vertical on the outer display and in inner-landscape; horizontal only in inner-portrait. The bar stays on the hardware side — no RTL flip.

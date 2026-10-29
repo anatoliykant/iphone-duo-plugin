@@ -7,6 +7,20 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.3.1] — 2026-10-29
+
+Closes the one check 1.3.0 left open: the hinge gate measured on the Xcode 27.2 RC simulators.
+
+### Fixed
+
+- **Default layout margins** — 1.3.0 said the zero default `UIView` margins from the iOS 27.2 release
+  notes reach every iPhone on iOS 27.1 and later. Measured with Xcode 27.2 RC: zero only on iPhone Duo
+  (24B91014); iPad Pro 13-inch and iPhone 18 Pro Max on iOS 27.2 (24B114) still get 8 pt. The section
+  now says so and shows the explicit-margin fix, which leaves iPad and the other iPhones unchanged.
+- **Hinge gate on iPad** — no longer rests on Apple's word alone: on iPad Pro 13-inch and iPhone 18 Pro
+  Max with iOS 27.2 neither `onHingeChange` nor `UIHingeInteraction` fired in 40 seconds, so
+  `deviceHasHinge` stays `false`; on the Duo runtime both fire at launch.
+
 ## [1.3.0] — 2026-10-29
 
 The first release after iPhone Duo shipped (2026-10-23). It folds in everything Apple published
