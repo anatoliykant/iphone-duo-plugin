@@ -1,0 +1,31 @@
+name: foldsim
+
+# Builds foldsim's macOS host and in-simulator helper with the runner's Xcode and runs its geometry
+# self-test. The simulator checks (tests/foldsim-probe/run.sh) need the iPhone Duo runtimes, which the
+# hosted runners do not have, so they run on a Mac before each release.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths: ['skills/foldsim/**', '.github/workflows/foldsim.yml']
+  pull_request:
+    paths: ['skills/foldsim/**', '.github/workflows/foldsim.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Build foldsim and run its self-test
+        env:
+          FOLDSIM_CACHE_DIR: ${{ runner.temp }}/foldsim-cache
+        run: |
+          skills/foldsim/scripts/foldsim --version
+          skills/foldsim/scripts/foldsim build
+          skills/foldsim/scripts/foldsim selftest

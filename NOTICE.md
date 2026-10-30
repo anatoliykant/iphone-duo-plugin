@@ -21,9 +21,10 @@ commentary and interoperability purposes, is not covered by the MIT License abov
 redistributed as a substitute for Apple's own documentation. Read the originals at
 <https://developer.apple.com>.
 
-The point sizes used throughout (outer 466 × 678, inner 626 × 890, Split View half ≈ 313 / 445) are
-**derived by the author** from Apple's published pixel specifications; Apple states no point sizes.
-Every reference file labels them as derived.
+The point sizes used throughout (outer 466 × 678, inner 669 × 951) are the app windows **measured by the
+author** on the iPhone Duo simulator (Xcode 27.2 RC); they equal Apple's App Store screenshot sizes divided
+by 3. Apple states no point sizes, and the Split View half (≈ 334 / 475) is derived. Plugin versions
+before 1.3.2 gave the inner display as 626 × 890 — the panel's pixels divided by 3 — which is wrong.
 
 Apple, iPhone, iPhone Duo, iPad, iOS, iPadOS, watchOS, Xcode, SwiftUI, UIKit, Swift, App Store and
 Human Interface Guidelines are trademarks of Apple Inc., registered in the U.S. and other countries.
@@ -36,3 +37,26 @@ The tiered migration structure (Tier 1 universal / Tier 2 device-aware / Tier 3 
 the "state survives the layout transition" framing were adapted from
 [FloWritesCode/fwc-swiftui-skills](https://github.com/FloWritesCode/fwc-swiftui-skills) (MIT License).
 No code or text was copied verbatim.
+
+## foldsim and private simulator interfaces
+
+The foldsim CLI in `skills/foldsim/scripts` is part of this work (© 2026 Anatolii Podkladov, MIT). Inside
+the iOS Simulator only, it uses private, undocumented interfaces: the IOKit HID event system, the
+`HIDVirtualEventService` class, CoreMotion's `CMAngleManager`, and the device-state event Xcode's Device
+Hub sends. They are used for development and testing of your own apps, are not supported by Apple, and
+can change with any Xcode or simulator runtime update.
+
+Interface references, used for declarations and constants only — no code was copied:
+
+- WebKit's open-source SPI declarations `Source/WebCore/PAL/pal/spi/ios/IOKitSPIIOS.h` and
+  `Source/WebCore/PAL/pal/spi/mac/IOKitSPIMac.h`, and its touch synthesizer
+  `Tools/WebKitTestRunner/ios/HIDEventGenerator.mm` (© Apple Inc., BSD license);
+- the macOS SDK's public `IOKit/hidsystem` headers;
+- IOHIDFamily's `HID/PrivateHeaders/HIDVirtualEventService.h` from Apple's open-source releases
+  (Apple Public Source License 2.0).
+
+The mechanisms were first described publicly by [artemnovichkov/hinge](https://github.com/artemnovichkov/hinge)
+(MIT License; the device-state event and reading the angle from `CMAngleManager`) and
+[skarol/duoctl](https://github.com/skarol/duoctl) (MIT License; touching the inner display through a
+virtual touchscreen). foldsim was written independently from those descriptions; no code was taken from
+either project.

@@ -8,13 +8,14 @@ Adapt, audit and design-review iOS apps for **iPhone Duo** — Apple's foldable 
 agent asked about them invents plausible symbol names. This plugin replaces that guesswork with
 references that carry a provenance tag on every symbol.
 
-Three components:
+Four components:
 
 | Component | Kind | What it does |
 |---|---|---|
 | `iphone-duo` | skill | Adapting Swift apps (UIKit + SwiftUI): size classes, vertical bars, reserved regions, `ArrangementView`, hinge, multiple scenes, dual front cameras, Split View, adaptive layout, state continuity. 8 reference files + Apple's 13-step migration order. |
 | Readiness audit | shared workflow + Claude agent | Runs a 26-category grep checklist and returns a severity-ranked report with `file:line` and a fix pointer per finding. Claude Code uses `iphone-duo-audit`; Codex and skills-only installs run the same workflow through `iphone-duo`. Never edits source code. |
 | `hig-design-review` | skill | Reviews Figma or Sketch mockups against the Human Interface Guidelines *before* implementation — general iOS rules plus the Duo rules D1–D32, with live HIG citations and a Ready / Not ready verdict. |
+| `foldsim` | skill + bundled CLI | Puts a simulator into every pose from the command line: folds, opens and rotates an iPhone Duo (closed, tent, book, open, table), rotates an iPhone or iPad, taps and swipes on any display — the Duo's inner one too — captures each display, and tours all poses with screenshots and state. Says what to check in each pose. |
 
 ## Requirements
 
@@ -27,6 +28,10 @@ Three components:
   simulator runtimes, is required for Duo work: it carries the Duo APIs, the iPhone Duo simulator and
   Apple's App Resizability agent skill, and fixes simulator bugs of Xcode 27.1, which the plugin no
   longer supports. Without it the skills do the resizability work and defer the Duo-only APIs.
+- **For `foldsim`: Apple silicon and Xcode 27.2 RC or later** with its simulator runtimes. Its first run compiles
+  two small Swift programs with that Xcode and caches them in `~/Library/Caches/foldsim`. The hinge, the Duo's
+  rotation and touches use private simulator interfaces that an Xcode update can change; `foldsim doctor`
+  checks them, and Device Hub stays the manual fallback.
 - **`jq`** — reading Figma JSON and SDK dumps without loading them into context.
 - **`python3`** — a few reference snippets use it for plist and geometry math.
 - **Network access** — the design review fetches HIG pages live (their JSON twins) rather than
@@ -50,7 +55,7 @@ Three components:
 npx skills add anatoliykant/iphone-duo-plugin
 ```
 
-This installs the two skills, including the complete read-only audit workflow; `agents/` is ignored
+This installs the three skills, including the complete read-only audit workflow and the foldsim CLI; `agents/` is ignored
 by that CLI. Select Codex when prompted to install for Codex. To get the Claude audit agent as well, copy
 `agents/iphone-duo-audit.md` into `~/.claude/agents/` **or** install the plugin (option 2) — not
 both: a user-scope agent overrides the plugin one, and you end up maintaining two copies.
@@ -88,7 +93,7 @@ codex plugin marketplace add /absolute/path/to/iphone-duo-plugin
 codex plugin add iphone-duo@anatoliykant-plugins
 ```
 
-The portable root `plugin.json` declares the Agent Plugins format; Codex discovers both skills
+The portable root `plugin.json` declares the Agent Plugins format; Codex discovers all three skills
 under `skills/`. `.agents/plugins/marketplace.json` points to this repository's root. The Claude
 manifest stays in `.claude-plugin/`, and both manifests carry the same version.
 
@@ -113,24 +118,25 @@ Once the entry is published:
 
 ### 5. By hand
 
-Copy `skills/iphone-duo` and `skills/hig-design-review` into `~/.claude/skills/` (or a project's
+Copy `skills/iphone-duo`, `skills/hig-design-review` and `skills/foldsim` into `~/.claude/skills/` (or a project's
 `.claude/skills/`), and `agents/iphone-duo-audit.md` into `~/.claude/agents/`.
 
-For Codex skills-only installation, copy the two **whole skill directories**, including their
-`references/`, into `~/.agents/skills/` (user scope) or `.agents/skills/` in the app project
+For Codex skills-only installation, copy the three **whole skill directories**, including their
+`references/` and `scripts/` (keep `scripts/foldsim` executable), into `~/.agents/skills/` (user scope) or `.agents/skills/` in the app project
 (repo scope). Start a new session. No Claude agent file or Codex custom-role configuration is needed.
 
 ## Usage
 
-Both skills load on their own when a request matches. Typical triggers: *"is this app ready for
+The skills load on their own when a request matches. Typical triggers: *"is this app ready for
 iPhone Duo"*, *"what breaks on the foldable"*, *"add vertical toolbar support"*, *"reserved regions"*,
-*"review this Figma against the HIG"*.
+*"review this Figma against the HIG"*, *"check this screen in every pose of the Duo simulator"*.
 
 Invoke them explicitly in Claude Code with their scoped names:
 
 ```
 /iphone-duo:iphone-duo           # adaptation work
 /iphone-duo:hig-design-review    # mockup review
+/iphone-duo:foldsim              # poses, rotation and touches on a simulator
 ```
 
 In Codex, select the installed skill from the `$` picker, or use its full plugin name:
@@ -138,9 +144,10 @@ In Codex, select the installed skill from the `$` picker, or use its full plugin
 ```text
 $iphone-duo:iphone-duo Audit this repository for iPhone Duo readiness. Do not change source files.
 $iphone-duo:hig-design-review Review this Figma mockup against the HIG: <Figma URL>
+$iphone-duo:foldsim Tour the booted iPhone Duo simulator and check the settings screen in every pose.
 ```
 
-Skills-only installs use `$iphone-duo` and `$hig-design-review` instead. Both skills accept
+Skills-only installs use `$iphone-duo`, `$hig-design-review` and `$foldsim` instead. All three accept
 `--help` and `--version` as standalone requests, for example `$iphone-duo:iphone-duo --version`.
 
 ### Readiness audit
@@ -187,6 +194,8 @@ plugin.json                  portable Codex / Agent Plugins manifest
 .claude-plugin/              Claude Code manifest + marketplace
 skills/iphone-duo/            SKILL.md + 8 references (includes the shared audit workflow)
 skills/hig-design-review/     SKILL.md + 4 references
+skills/foldsim/               SKILL.md + 1 reference + scripts/ (the foldsim CLI, Swift sources)
+tests/foldsim-probe/          probe app and the simulator checks behind foldsim (development only)
 agents/iphone-duo-audit.md    Claude Code adapter for the shared audit workflow
 scripts/validate-plugin.py   package and version checks used by CI
 ```
@@ -205,6 +214,7 @@ scripts/validate-plugin.py   package and version checks used by CI
 | `hig-design-review/references/duo-design-rules.md` | The Duo design checklist D1–D32 with a source per rule |
 | `hig-design-review/references/hig-general-checklist.md` | General iOS checks per area + how to fetch and cite the live HIG JSON pages |
 | `hig-design-review/references/report-template.md` | Report shape, severity rows, verdict block, Figma comment format |
+| `foldsim/references/pose-checks.md` | What to look for in each pose: both displays, the hinge gate, the orientation mask, render-test windows |
 
 ## Status and freshness
 
@@ -236,14 +246,16 @@ iPhone Duo" page, the Xcode 27.1 / 27.2 RC and iOS 27.2 release notes, TN3192, a
 of 2026-10-05 (the "optimized for iPhone Duo" badge and the April 2027 screenshot requirement). On 2026-10-29
 Xcode 27.2 RC became the required toolchain, and three sarunw.com articles were folded in after every claim
 was re-measured on the Duo simulator. The re-measurement corrected the inner display to 669 × 951 pt. On 2026-10-30, findings from two DMV sessions fixing
-Duo QA bugs were re-measured and folded in. Labs are
+Duo QA bugs were re-measured and folded in, and the foldsim skill was added with its own probe-app checks. Labs are
 transcribed from Apple's own captions and are cited for guidance, never for API spellings.
 
 `skills/iphone-duo/references/testing-and-sources.md` §Freshness lists what is still open and the
 machine-checkable signals: new labs, the Xcode 27.2 release, silent HIG or article edits.
 
-The plugin has no executable runtime, bundled MCP servers or hooks. The host runs its instructions
-using your configured tools and permissions. Design review fetches live sources and can use your
+The plugin has no bundled MCP servers or hooks. Its one executable is the foldsim CLI: a shell launcher
+that compiles the Swift sources next to it with your Xcode on first use, runs only `xcrun simctl` and
+`xcrun devicectl` on the Mac, and runs its helper inside the simulator you name. It never boots, shuts down
+or erases a simulator. Everything else runs as instructions with your configured tools and permissions. Design review fetches live sources and can use your
 Figma MCP connection; audits write scratch output and an explicitly requested report.
 
 ## Development checks
@@ -252,10 +264,13 @@ Figma MCP connection; audits write scratch output and an explicitly requested re
 python3 scripts/validate-plugin.py
 claude plugin validate .
 git diff --check
+skills/foldsim/scripts/foldsim selftest   # foldsim's geometry, no simulator needed
+tests/foldsim-probe/run.sh                # foldsim against a probe app on throwaway simulators
 ```
 
 The validator checks both manifests and marketplaces, skill version answers, bundled references,
-and release tags. Run it before publishing a version. See [CHANGELOG.md](CHANGELOG.md) for changes.
+and release tags, plus that the foldsim launcher is executable and its sources never shut down or
+erase a simulator. Run it before publishing a version. See [CHANGELOG.md](CHANGELOG.md) for changes.
 
 ## Release destinations
 
@@ -275,6 +290,10 @@ Update both plugin manifests and both skill version literals together. Push `mai
   Interface Guidelines — quoted material stays © Apple, see [`NOTICE.md`](NOTICE.md).
 - [FloWritesCode/fwc-swiftui-skills](https://github.com/FloWritesCode/fwc-swiftui-skills) (MIT) for
   the tiered-migration and state-continuity framing.
+- [artemnovichkov/hinge](https://github.com/artemnovichkov/hinge) (MIT), which first documented Device Hub's
+  hinge event and reading the angle from CoreMotion, and [skarol/duoctl](https://github.com/skarol/duoctl)
+  (MIT), which documented touching the inner display through a virtual touchscreen. foldsim is written
+  from those descriptions and Apple's open-source headers; no code was taken from either project.
 
 ## License
 

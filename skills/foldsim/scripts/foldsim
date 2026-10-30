@@ -1,0 +1,71 @@
+#!/bin/sh
+# foldsim — drive iOS simulators for layout checks: fold and rotate an iPhone Duo, rotate an iPhone
+# or iPad, touch any display, and capture what each display shows.
+#
+# The first run (and the first after an Xcode or foldsim update) compiles two small Swift programs
+# with the selected Xcode — the macOS host and a helper that runs inside the simulator — and caches
+# them in $FOLDSIM_CACHE_DIR (default ~/Library/Caches/foldsim). Later runs start at once.
+set -eu
+
+# Find the real script: the skill may be reached through a symlink.
+script=$0
+while [ -L "$script" ]; do
+    target=$(readlink "$script")
+    case $target in
+        /*) script=$target ;;
+        *) script=$(dirname "$script")/$target ;;
+    esac
+done
+scripts=$(cd "$(dirname "$script")" && pwd -P)
+
+version=$(sed -n 's/.*skill-version: \([0-9][0-9.]*\).*/\1/p' "$scripts/../SKILL.md" | head -n 1)
+if [ "${1:-}" = --version ]; then
+    echo "foldsim ${version:-unknown}"
+    exit 0
+fi
+
+developer=$(xcode-select -p 2>/dev/null) || developer=
+if [ -z "$developer" ] || ! xcrun --sdk iphonesimulator --show-sdk-path >/dev/null 2>&1; then
+    echo "foldsim: needs Xcode with the iOS simulator SDK (xcode-select -p: ${developer:-none}); set DEVELOPER_DIR" >&2
+    exit 2
+fi
+xcode_build=$(/usr/libexec/PlistBuddy -c 'Print :ProductBuildVersion' "$developer/../version.plist" 2>/dev/null || echo unknown)
+
+cache=${FOLDSIM_CACHE_DIR:-$HOME/Library/Caches/foldsim}
+if ! mkdir -p "$cache" 2>/dev/null || [ ! -w "$cache" ]; then
+    cache=${TMPDIR:-/tmp}
+    cache=${cache%/}/foldsim-cache
+    mkdir -p "$cache"
+    echo "foldsim: cannot write the cache, building in $cache" >&2
+fi
+key=$({ cat "$script" "$scripts"/src/host/*.swift "$scripts"/src/helper/*.swift
+        echo "$developer $xcode_build ${FOLDSIM_SWIFT_FLAGS:-}"; } | /sbin/md5 -q)
+build=$cache/$key
+
+if [ ! -x "$build/foldsim-host" ] || [ "${1:-}" = build ]; then
+    echo "foldsim: compiling with Xcode $xcode_build — once per Xcode and foldsim version, up to a minute" >&2
+    work=$(mktemp -d "$cache/build.XXXXXX")
+    arch=$(uname -m)
+    # shellcheck disable=SC2086 # FOLDSIM_SWIFT_FLAGS holds extra compiler flags, split on purpose
+    if xcrun --sdk iphonesimulator swiftc -swift-version 5 -O -wmo -module-cache-path "$cache/module-cache" \
+            ${FOLDSIM_SWIFT_FLAGS:-} -target "$arch-apple-ios17.0-simulator" \
+            "$scripts"/src/helper/*.swift -o "$work/foldsim-helper" >"$work/build.log" 2>&1 &&
+        codesign -f -s - "$work/foldsim-helper" >>"$work/build.log" 2>&1 &&
+        xcrun --sdk macosx swiftc -swift-version 5 -O -wmo -module-cache-path "$cache/module-cache" \
+            ${FOLDSIM_SWIFT_FLAGS:-} -target "$arch-apple-macos14" \
+            "$scripts"/src/host/*.swift -o "$work/foldsim-host" >>"$work/build.log" 2>&1; then
+        mkdir -p "$build"
+        # The host lands last: its presence marks a complete build for concurrent runs.
+        mv -f "$work/foldsim-helper" "$build/foldsim-helper"
+        mv -f "$work/foldsim-host" "$build/foldsim-host"
+        rm -rf "$work"
+    else
+        cat "$work/build.log" >&2
+        rm -rf "$work"
+        echo "foldsim: the build failed with $developer; try another Xcode through DEVELOPER_DIR" >&2
+        exit 1
+    fi
+fi
+
+FOLDSIM_HELPER=$build/foldsim-helper FOLDSIM_VERSION=$version FOLDSIM_XCODE="$developer ($xcode_build)" \
+    exec "$build/foldsim-host" "$@"

@@ -71,6 +71,14 @@ def validate():
             for reference in re.findall(r"`(references/[\w-]+\.md)`", doc.read_text()):
                 check((path.parent / reference).is_file(), f"{label}: missing {reference}")
 
+    # foldsim's launcher has to stay executable through copies and installs, and nothing it ships
+    # may shut down or erase a simulator: other sessions run their own simulators on the same Mac.
+    launcher = ROOT / "skills/foldsim/scripts/foldsim"
+    check(launcher.is_file() and os.access(launcher, os.X_OK), "skills/foldsim/scripts/foldsim must be executable")
+    for source in [launcher, *sorted((ROOT / "skills/foldsim/scripts/src").rglob("*.swift"))]:
+        for word in ("shutdown", "erase"):
+            check(word not in source.read_text().lower(), f"{source.relative_to(ROOT)}: foldsim must never {word} a simulator")
+
     workflow = ROOT / "skills/iphone-duo/references/audit-workflow.md"
     check(workflow.is_file(), "The portable audit workflow is missing from the iphone-duo skill")
     for path in ("skills/iphone-duo/SKILL.md", "agents/iphone-duo-audit.md"):

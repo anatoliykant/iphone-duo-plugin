@@ -4,10 +4,11 @@
   "groupings": [
     {
       "title": "iPhone Duo",
-      "description": "Two halves of the same job on Apple's foldable iPhone: review the mockup before anyone writes code, then build and audit the app against the same rules.",
+      "description": "Three parts of the same job on Apple's foldable iPhone: review the mockup before anyone writes code, build and audit the app against the same rules, then check it in every pose on the simulator.",
       "skills": [
         "hig-design-review",
-        "iphone-duo"
+        "iphone-duo",
+        "foldsim"
       ]
     }
   ]

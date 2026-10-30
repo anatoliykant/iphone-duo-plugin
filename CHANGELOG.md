@@ -7,6 +7,82 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.4.0] — 2026-10-30
+
+A third skill, **foldsim**: the plugin now puts a simulator into every pose itself instead of sending you to
+Device Hub's buttons, and says what to check there. Its code is written for this plugin in Swift, from
+Apple's open-source headers and the mechanisms described by two MIT projects (see NOTICE.md); no code is
+taken from them. Every command was checked against a probe app on throwaway simulators: Xcode 27.2 RC, Duo
+runtimes 24B91014 (27.2 RC) and 24A94425 (27.1), iPhone 18 Pro Max and iPad Pro 13-inch (M5) on 24B114.
+
+The release also takes in what a DMV session learned fixing six Duo QA bugs ([PR #1633](https://github.com/elegant-elearning/mobile-iOS/pull/1633)).
+Each finding was measured on a Duo simulator first (runtime 24B91014); the ones that could not be measured
+are marked as DMV's.
+
+### Added
+
+- **foldsim skill with a bundled CLI.** A shell launcher compiles a macOS host and a helper that runs inside
+  the simulator with your Xcode on first use (seconds; cached in `~/Library/Caches/foldsim`).
+  - iPhone Duo: `hinge <degrees|closed|half|open>` at Device Hub's pace, never an instant jump; `pose
+    closed-portrait | closed-landscape | tent | book | open-landscape | open-portrait | table`, each reached
+    the way a hand would and checked; `rotate` of whichever display is active.
+  - iPhone and iPad: `rotate` through `devicectl device orientation set`.
+  - Any display, the Duo's inner one included: `tap`, `press`, `swipe` in the app's interface points, and
+    `screenshot` of the active display, the cover, the inner one or both.
+  - `tour`: every pose of a Duo, or orientation of an iPhone or iPad, with a screenshot of every display,
+    `tour.json` and `tour.md`.
+  - `state`, `devices`, `doctor` (are the private interfaces still there), `selftest` (the geometry, on
+    measured samples, without a simulator).
+  - Exit code 3 when the app or the system refuses an orientation, so the orientation-mask check is a
+    script. Exit 2 instead of a guess when several simulators are booted; foldsim never boots, shuts down or
+    erases one.
+  - `references/pose-checks.md`: both displays per pose, the hinge gate, the orientation mask, render-test
+    windows, known simulator behaviour.
+- **What the simulator does, measured for foldsim** (and now in the skills):
+  - which display is active depends on how the hinge got there: one continuous move switches displays between
+    about 75° and 90°, opening or folding, at any pace; a hinge that stops on the way keeps the display it had
+    (the cover to about 120° when opened in steps, the inner display to 20° when folded in steps);
+  - `UIHinge.status` follows the same history, not the angle: `.closed` at 123° after an opening in steps,
+    `.partiallyOpen` at 21° after a fold in steps;
+  - opening a landscape Duo into a tent turns the cover's interface over, and there the device orientations
+    reach the cover half a turn off;
+  - the Duo ignores `devicectl device orientation set`, and iPhone and iPad ignore Device Hub's orientation
+    event; the Duo's inner display shows portrait upside down, its cover and an iPhone never do;
+  - the iPad turns an app whose `application(_:supportedInterfaceOrientationsFor:)` returns `.portrait`
+    (no `UIRequiresFullScreen`), so the gated mask holds iPhones in portrait, not iPads;
+  - touches through a virtual touchscreen land within a point of the target on every display and rotation;
+    like a finger's, they do not reach the app under an iPhone's status bar in portrait or outside a rounded
+    display corner.
+- **From DMV's Duo fixes, measured** (iphone-duo):
+  - `bars-and-toolbars`: a full-screen overlay stays under the vertical bar, so hide its items with
+    `isHidden` (gone from the bar and the accessibility tree), not `isEnabled = false` (still there, dimmed);
+    a `UIHostingController` throws away `toolbarItems` set from UIKit at launch and again when the Duo
+    unfolds; a UI test finds the vertical bar by buttons sharing a `midX`, since on the closed Duo in
+    landscape-right the column is on the left.
+  - `layout-size-classes-safe-area`: the system sheet on the Duo — closed, a card 8 pt from the sides and
+    the bottom (450 × 390 pt in portrait); open, 653 pt wide and centred; a large sheet runs to the bottom
+    edge. Tests wait for the hinge gate to latch: the first handler call came 0.13–0.52 s after
+    `addInteraction`. A part only one layout has (a footer) goes into one copy of the screen through
+    `.safeAreaInset`, not into two `if/else` copies.
+  - `testing-and-sources`: `IDESchemeActionDeviceRecord … invalidDigitCount(91014)` in an xcodebuild log is
+    noise; a test against the Duo runtime passes with it.
+  - `pose-checks`: a change to a shared component needs every suite that renders it, in every pose; suites
+    that need the open Duo run on their own, after `foldsim pose open-landscape`.
+- **`tests/foldsim-probe`**: the probe app and `run.sh`, which checks every command against what the app
+  reports, on its own simulators, one at a time.
+- **CI**: a macOS job builds foldsim and runs its self-test. The validator checks that the launcher is
+  executable and that foldsim's sources never shut down or erase a simulator.
+
+### Changed
+
+- **iphone-duo**: Verifying and `testing-and-sources.md` no longer say that poses, the Duo's rotation and
+  inner-display taps are manual only; they point to foldsim, with Device Hub as the fallback.
+- **hinge-scenes-camera**: never map angle ranges to a hinge status or a display (measurements above).
+
+### Fixed
+
+- **NOTICE.md** still gave the inner display as 626 × 890 pt, "derived"; it now has the measured 669 × 951.
+
 ## [1.3.3] — 2026-10-30
 
 Findings from two DMV sessions fixing iPhone Duo QA bugs ([PR #1633](https://github.com/elegant-elearning/mobile-iOS/pull/1633)
