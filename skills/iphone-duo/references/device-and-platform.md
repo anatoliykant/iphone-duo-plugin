@@ -22,6 +22,41 @@ Both panels: OLED Super Retina XDR, ProMotion up to 120 Hz, 1000 nits typical / 
 
 The outer display is wider and shorter than a standard iPhone — that is why bars move to the side (preserves vertical space). "Outer landscape = compact × compact" is not stated by Apple; the Duo simulator reports it (Xcode 27.2 RC, iOS 27.1 and 27.2 runtimes, 2026-10-29).
 
+### Landscape on the outer display — for the Duo only
+
+The outer display honors `UISupportedInterfaceOrientations`, and the Duo reports `.phone`. So adding landscape to the iPhone list for the Duo turns landscape on for every iPhone — DMV shipped that by accident and reverted it (EE-5225). Under rule 14:
+- keep landscape in the iPhone list;
+- return the mask at run time — portrait until the hinge gate latches, landscape after;
+- tell UIKit when the gate flips.
+
+```swift
+// Only when the app opts the Duo's outer display into landscape — the rest of the gate is
+// layout-size-classes-safe-area.md §Scope. Typechecked 2026-10-30, Swift 5 and 6, targets 27.1 and 17.0.
+@MainActor enum HingeGate {
+    static private(set) var deviceHasHinge = false
+    static func install(on window: UIWindow) {
+        guard #available(iOS 27.1, *) else { return }
+        window.addInteraction(UIHingeInteraction { [weak window] _, update in
+            guard update.hinge != nil, !deviceHasHinge else { return }
+            deviceHasHinge = true
+            window?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        })
+    }
+}
+
+final class AppDelegate: UIResponder, UIApplicationDelegate {   // SwiftUI: @UIApplicationDelegateAdaptor
+    func application(_ application: UIApplication,
+                     supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        HingeGate.deviceHasHinge ? .allButUpsideDown : .portrait
+    }
+}
+```
+
+Measured 2026-10-30 (Xcode 27.2 RC):
+- **Duo:** the mask switched during launch, and the cover display rotated to landscape.
+- **iPhone 18 Pro Max:** the app stayed in portrait while the device turned. With the gate bypassed, the same build rotated.
+- **Inner display:** ignores the key either way.
+
 ## Poses (HIG terminology)
 
 Apple says **pose** for the physical configuration and **hinge status** for the fold state. There is no "posture" API.
@@ -31,7 +66,7 @@ Apple says **pose** for the physical configuration and **hinge status** for the 
 | Closed | outer display | compact width |
 | Partially folded like a book | inner display, hinge vertical | regular × regular + active **division** region |
 | Placed on a surface (laptop / table) | inner display, hinge horizontal | regular × regular + active division region; top = content viewed from afar, bottom = controls |
-| Standing on its edges (tent) | inner display when it stands open like a book; the outer display when it stands folded | regular × regular inside; outside, compact width — and the outer display honors your orientations, so Apple's forum answer suggests landscape support there: "iPhone Duo is a great opportunity to support landscape orientation, as people may want to set the phone down like a tent" ([847851](https://developer.apple.com/forums/thread/847851)) |
+| Standing on its edges (tent) | inner display when it stands open like a book; the outer display when it stands folded | regular × regular inside; outside, compact width — and the outer display honors your orientations (for the Duo only: §Landscape on the outer display), so Apple's forum answer suggests landscape support there: "iPhone Duo is a great opportunity to support landscape orientation, as people may want to set the phone down like a tent" ([847851](https://developer.apple.com/forums/thread/847851)) |
 | Fully open (flat) | inner display | regular × regular; division region **inactive** — the talk says it then has zero width, but the simulator still reports the 40 pt band; test `isActive`, not the width |
 
 **Do not design a layout per pose.** Design for compact and regular size classes; let reserved regions and arrangements handle the fold. Hinge status/angle is for effects only (`hinge-scenes-camera.md`).
@@ -74,6 +109,10 @@ Lab 287 13:49: every widget size StandBy supports on other iPhones works on Duo,
 
 - No dedicated "am I in StandBy" signal was named in lab 288 (17:55, the panel was unsure and pointed at widget `EnvironmentValues`).
 - On the outer display a Live Activity grows out of the **bottom** of the vertically laid-out Dynamic Island, so it is narrower than on other iPhones (lab 288 18:18). Implement every presentation — `compactLeading`, `compactTrailing`, `minimal`, expanded and Lock Screen (DTS summary).
+- **`isDynamicIslandLimitedInWidth`** **SDK(27.0)** (`EnvironmentValues`, declared in WidgetKit). Apple: "In some devices and context, the system adapts the flexible width of compact and minimal Live Activities and renders them smaller; for example, on iPhone in landscape orientation or on iPhone Duo. Use the `isDynamicIslandLimitedInWidth` environment value to adapt views you provide to compact and minimal Live Activity presentations."
+  - DMV hit this on the Duo: a "10/94" counter in the compact presentation was cut off (EE-5233, Xcode 27.2 RC).
+  - Their fix reads the value, drops fixed `frame(width:)`, and allows two lines plus a `minimumScaleFactor`. The text wrapped before it scaled.
+  - The value is also true on other iPhones in landscape, so anything keyed to it changes there as well (rule 14). Keep the change to what makes the content fit.
 - An alarm-clock face on the folded device is AlarmKit plus a good countdown Live Activity, not a scene accessory (DTS summary).
 - Testing: StandBy is unavailable in the iPhone Duo simulator runtime (Xcode 27.1 release notes, 187708663).
 

@@ -7,6 +7,52 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.3.3] — 2026-10-30
+
+Findings from two DMV sessions fixing iPhone Duo QA bugs ([PR #1633](https://github.com/elegant-elearning/mobile-iOS/pull/1633)
+and branch `bugfix/ee-5202-iphone-duo-qa-fixes`). Each one was re-measured on the simulators first: Xcode 27.2 RC, Duo
+runtime 24B91014, iPhone 18 Pro Max and iPad Pro 13-inch on 24B114. Two of them did not reproduce as first described
+and were narrowed down before going in.
+
+### Fixed
+
+- **Render tests on the Duo simulator.** A window sized exactly like a Duo display is resized to the current scene,
+  at creation and on every fold or rotation. This applies to 466 × 678 and 669 × 951, in either orientation. Other
+  sizes, and every size on iPhone 18 Pro Max, are kept. The advice now:
+  - keep the window at the scene's size and size a child container instead;
+  - assert the hosted view's bounds before snapshotting;
+  - create windows with `UIWindow(windowScene:)` — `init(frame:)` is deprecated since iOS 26.
+  The mid-test resize example still said 626 → 313; it now says 669 → 334.
+
+### Added
+
+- **Landscape for the outer display reaches every iPhone.** The Duo reports `.phone`, so adding landscape to the iPhone
+  `UISupportedInterfaceOrientations` key rotates all iPhones. New: a run-time mask behind the hinge gate, typechecked,
+  and measured — the Duo rotates, iPhone 18 Pro Max stays in portrait. The audit flags the plist change under rule 14.
+- **The 24 pt navigation-bar strip.** On the closed Duo in landscape, a title-less navigation bar whose items all
+  moved to the vertical bar still takes 24 pt at the top. With an opaque `UINavigationBarAppearance` this is a white
+  strip across the top; `.toolbarBackground(.hidden, for: .navigationBar)` removes it.
+- **Occlusion regions are not only the camera.** There is also a status-bar region in the bar column. In outer
+  landscape the camera sits in a corner of the window. The inner camera is an inactive region until a capture
+  session uses it. iPhone and iPad report occlusion regions too, so avoiding them is not Duo-only.
+- **The fold's margins.** 20 pt on each long side, so the keep-clear zone is 80 pt. A design-rule note: an element
+  that does not fit whole beside the fold moves to the other half.
+- **Overlay-wrapper anti-pattern.** An overlay `ArrangementView` around one scrolling column leaves the top half
+  empty in the table pose.
+- **`isDynamicIslandLimitedInWidth`** (iOS 27.0) for compact and minimal Live Activities on the Duo, quoted from
+  Apple's documentation.
+- **`sharedBackgroundVisibility(.hidden)`** for a counter that shares a button's glass capsule, in the vertical bar too.
+- **Sheet geometry.** System sheets on the Duo: 653 pt wide on the inner display; beside the bar on the closed
+  landscape display.
+- **Simulator tooling.**
+  - `devicectl device orientation set` rotates iPhone and iPad simulators, but not the Duo.
+  - `simctl io screenshot --display=1|3` captures one Duo display.
+  - AXe taps land on the cover display.
+  - `SIMULATOR_MODEL_IDENTIFIER` gives the device model in tests (`iPhone19,4` for the Duo).
+  - The Duo runtime ships only Safari and Settings among Apple's apps.
+  - Render tests that need the fold must run on an unfolded Duo.
+- **The status bar sits in the bar column** on the closed Duo; content that ignores the side safe area slides under it.
+
 ## [1.3.2] — 2026-10-29
 
 Xcode 27.2 RC becomes the required toolchain, and three sarunw.com articles (2026-10-16, 10-22 and

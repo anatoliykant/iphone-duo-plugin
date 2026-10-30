@@ -29,7 +29,19 @@ The SwiftUI query takes a third argument: `reservedRegions(kind:options:layoutDi
 
 The HIG names three regions: outer front camera (always present; grows into the Dynamic Island for Live Activities), inner front camera (under-display, present only while active — UI moves aside when it turns on), folding region (divides the inner display when partially open).
 
-**No numeric hinge width, angle thresholds or inset values are published.** Query — never hard-code. For orientation only, measured 2026-10-29 on the Duo simulator (Xcode 27.2 RC; iOS 27.2 and 27.1 runtimes the same): the division region is a **40 pt band centred on the 669 × 951 pt inner window** — x 455–495 in landscape (book), y 455–495 in portrait (table) — active when folded, inactive when flat.
+**No numeric hinge width, angle thresholds or inset values are published.** Query — never hard-code. For orientation only, measured 2026-10-29 on the Duo simulator (Xcode 27.2 RC; iOS 27.2 and 27.1 runtimes the same): the division region is a **40 pt band centred on the 669 × 951 pt inner window** — x 455–495 in landscape (book), y 455–495 in portrait (table) — active when folded, inactive when flat. Its `margins` are 20 pt on the two long sides, so the keep-clear zone is 80 pt (x or y 435–515). DMV's table-pose layout measured the same zone (y ≈ 436–516).
+
+`.occlusion` returns more than the camera. Measured 2026-10-30 with a `GeometryReader` that ignores the safe area:
+
+| Display, orientation | Camera region | Status-bar region | Note |
+|---|---|---|---|
+| Duo outer, portrait | 37 × 37 pt at (399, 29) | ≈ 84 pt wide, 82–174 pt tall, at the top of the bar column | — |
+| Duo outer, landscape | in the bottom-right corner (611, 399) one way, top-left (29, 29) the other | beside the camera | a button in that corner needs to avoid it — DMV's sheet moved its button by the occlusion frame |
+| Duo inner | under-display camera: **inactive** region (37 × 58 pt) until a capture session uses it | active, in the bar column: 84 × 124 pt landscape, 144 × 82 pt portrait | — |
+| iPhone 18 Pro Max | — | 440 × 54 pt strip at the top | not Duo-only |
+| iPad Pro 13-inch | — | 1032 × 32 pt strip at the top | not Duo-only |
+
+Because iPhone and iPad report occlusion regions too, code that avoids occlusion regions acts on every device. Keep Duo-only avoidance behind the hinge gate (rule 14).
 
 **Touches over the camera region are not reliable.** The DTS summary of the labs: a custom element that overlaps a hardware-reserved region such as the camera without adopting the reserved-region APIs gets "touch events in that area … suppressed or may not register as expected". Safe-area insets alone do not describe these regions either — the same summary says safe areas are "insufficient for handling dynamic folding regions", and size classes "don't encode the hinge's exact location".
 
@@ -319,6 +331,9 @@ Which child is primary has "no single fixed rule" (DTS summary) — pick by cont
 - Per-pose layouts (`if isBookPose { … }`) — inputs are size classes + aspect ratio + regions, and the system computes them.
 - Using hinge angle to compute frames — `hinge-scenes-camera.md` §Hinge.
 - Displacing scrolling content, or moving elements far / rearranging (HIG: "move only what's necessary").
+- An overlay `ArrangementView` used as a generic fold-avoiding wrapper around one scrolling column. In the table pose the overlay puts the primary entirely below the horizontal fold — its documented folded placement — and the top half stays empty.
+  - DMV hit this on Learn and Progress (EE-5218, Xcode 27.2 RC).
+  - Their fix keeps the column whole and moves content away only from a vertical fold; scrolling content may cross the horizontal one (D31).
 
 ## Migration recipe for a custom two-pane screen
 

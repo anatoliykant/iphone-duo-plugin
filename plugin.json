@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "iphone-duo",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Adapt, audit and design-review iOS apps for iPhone Duo — Apple's foldable iPhone (iOS 27.1): size classes, vertical bars, reserved regions, arrangement views, hinge, scenes, dual cameras; a shared read-only readiness audit; a HIG design review of Figma/Sketch mockups.",
   "author": {
     "name": "Anatolii Podkladov",

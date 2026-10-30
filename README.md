@@ -235,7 +235,8 @@ of the labs on the forums, the three 2026-09-23 forum Q&As, the "Three steps to 
 iPhone Duo" page, the Xcode 27.1 / 27.2 RC and iOS 27.2 release notes, TN3192, and the App Store news
 of 2026-10-05 (the "optimized for iPhone Duo" badge and the April 2027 screenshot requirement). On 2026-10-29
 Xcode 27.2 RC became the required toolchain, and three sarunw.com articles were folded in after every claim
-was re-measured on the Duo simulator. The re-measurement corrected the inner display to 669 × 951 pt. Labs are
+was re-measured on the Duo simulator. The re-measurement corrected the inner display to 669 × 951 pt. On 2026-10-30, findings from two DMV sessions fixing
+Duo QA bugs were re-measured and folded in. Labs are
 transcribed from Apple's own captions and are cited for guidance, never for API spellings.
 
 `skills/iphone-duo/references/testing-and-sources.md` §Freshness lists what is still open and the
