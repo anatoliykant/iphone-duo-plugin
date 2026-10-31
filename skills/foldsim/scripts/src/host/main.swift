@@ -182,7 +182,9 @@ func run() throws {
             throw usageError("--display takes active, cover, inner or both")
         }
         for (display, file) in targets { try simulator.screenshot(display, to: file) }
-        emit(["files": targets.map(\.1)], targets.map(\.1).joined(separator: "\n"))
+        // The state goes with the files: two poses can look the same in a picture.
+        let state = try simulator.state()
+        emit(["files": targets.map(\.1), "state": state], (targets.map(\.1) + [describe(state)]).joined(separator: "\n"))
 
     case ("tour", 0):
         let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "")

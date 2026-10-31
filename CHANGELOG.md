@@ -7,6 +7,55 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.4.2] — 2026-10-31
+
+Takes in a DMV session's third set of Duo findings ([PR #1649](https://github.com/elegant-elearning/mobile-iOS/pull/1649), EE-5320 and EE-5321).
+Each was checked against the 27.2 RC SDK or with a probe app on a Duo simulator (runtime 24B91014); what the
+simulator cannot show is marked as DMV's. Measuring the sheets went past the report: in the book pose a sheet
+reaches 12 pt into the fold band, and its safe area does not say so. Left out as DMV's own: the column offsets
+of its layouts and the ±8 pt band its tests keep empty; flagging every flat layout that ignores the fold
+became a softer rule, since Apple lets flat layouts sit off-centre.
+
+### Changed
+
+- **Animate on the fold, not on the layout kind** (iphone-duo, reserved regions). 1.4.1 suggested
+  `.animation(.smooth, value: kind)`, but a resize in Split View can switch the kind as well, and an animated
+  switch then trails the divider (DMV). Key the animation to the region's `isActive`, as the probe did; DMV
+  animates only when `isActive` flipped while the window kept its size.
+
+### Added
+
+- **Sheet sizes in the book pose** (iphone-duo, design review, foldsim pose checks; measured). Flat, a sheet
+  is 653 × 661 pt. Folded, it takes one pane at 459.3 pt — the leading one by default, the trailing one with
+  `.trailing` — and stops 8 pt short of the crease, so 12 pt of it lie inside the 40 pt band. Neither its safe
+  area nor its layout margins cover that strip; the division region read inside the sheet does. Content clear
+  of the band has about 447 pt. A trailing sheet whose `preferredContentSize` is no wider than the room
+  beside the band — 447.5 pt, DMV's approach — stayed at x 495.5–943 in both poses; a wider one was squeezed
+  into the pane and back into the band. Design rule D18 now flags sheet content of fixed width that fits only
+  flat.
+- **Sizes a view keeps from its first layout** (iphone-duo layout, testing, foldsim pose checks; measured). A
+  grid that computes its day width once keeps the flat width when the fold narrows its sheet, and its last
+  column runs past the edge — DMV's JTAppleCalendar lost its last column and the selected day's frame that way
+  (EE-5321). In a probe, the sheet controller's `viewDidLayoutSubviews` still saw the nested grid's old width,
+  as Apple's documentation warns, so a width set there stayed wrong; set from the grid's own `layoutSubviews`
+  and applied on the next run-loop turn, it followed both ways. Compare the width again after each reload, and
+  test two changes in a row.
+- **One query for both poses** (iphone-duo; measured). A `.includeInactive` query returns the same band flat
+  and folded, and only `isActive` changes, so a second, active-only query adds nothing; pick a region by
+  `isActive`. The crease is `frame.inset(by: margins)`, a zero-width rect at x 475.5.
+- **Render tests on the open Duo** (iphone-duo testing, foldsim pose checks). Open is two poses with one
+  window, so a trait that checks "unfolded" lets flat and book through: branch the expectations on `isActive`
+  or pin the pose with `foldsim pose`.
+- **Doc indexes without the Duo APIs** (iphone-duo, Verify symbols). cupertino 1.4.2, whose databases date
+  from 2026-07-23, has no `ReservedRegion`, `ArrangementView` or `UIHingeInteraction`; grep the SDK instead.
+- **Recording the fold** (foldsim pose checks): `simctl io recordVideo --display=3` around
+  `foldsim pose book`, tried on the simulator.
+- **foldsim `screenshot` prints the state after the files** (`--json`: `state`) — hinge angle, active display,
+  orientation — so a picture of the book pose cannot pass for a flat one. DMV had two identical screenshots
+  and could not tell whether the pose had changed.
+- **Design review**: D25 asks for one rule for flat two-column splits across an app's screens. Flat may sit
+  off-centre, as Apple's split views do at about 35/65; DMV's screens meet the fold line.
+
 ## [1.4.1] — 2026-10-31
 
 Takes in a DMV session's second set of Duo fixes ([PR #1634](https://github.com/elegant-elearning/mobile-iOS/pull/1634)).

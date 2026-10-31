@@ -14,9 +14,9 @@ skills-only install). For a flag-only request, print only the corresponding bloc
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `foldsim 1.4.1` · Xcode 27.2 RC or later on Apple silicon · measured 2026-10-30 on the Duo runtimes 24B91014 (27.2 RC) and 24A94425 (27.1), iPhone 18 Pro Max and iPad Pro 13-inch (M5) on 24B114
+> `foldsim 1.4.2` · Xcode 27.2 RC or later on Apple silicon · measured 2026-10-30 on the Duo runtimes 24B91014 (27.2 RC) and 24A94425 (27.1), iPhone 18 Pro Max and iPad Pro 13-inch (M5) on 24B114
 
-<!-- skill-version: 1.4.1 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.4.2 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
 **`-h` / `--help`** — print this, verbatim:
 
@@ -56,7 +56,7 @@ project. If the file lost its executable bit (some copies do), run it as `sh <pa
 | `hinge <degrees\|closed\|half\|open> [--duration s] [--tolerance °]` | Duo: moves the hinge at 60° a second (never an instant jump), waits until CoreMotion agrees |
 | `rotate <portrait\|landscape-left\|landscape-right\|portrait-upside-down>` | turns the active display's interface; names as in `UIInterfaceOrientation` |
 | `tap x y` · `press x y [--duration s]` · `swipe x1 y1 x2 y2 [--duration s]` | interface points of the active display, as the app sees them |
-| `screenshot -o file.png [--display active\|cover\|inner\|both]` | `both` writes `file-cover.png` and `file-inner.png` |
+| `screenshot -o file.png [--display active\|cover\|inner\|both]` | `both` writes `file-cover.png` and `file-inner.png`; prints the state after the files (`--json`: `state`), so a picture of the book pose cannot pass for a flat one |
 | `tour [--out dir]` | Duo: every pose and back to the start; iPhone: portrait and both landscapes; iPad: all four. Screenshots of every display, `tour.json`, `tour.md` |
 | `doctor` | the toolchain and every private interface of the booted runtime |
 

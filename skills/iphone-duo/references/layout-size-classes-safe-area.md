@@ -188,6 +188,17 @@ enum ScreenWidthBucket {
 
 Every consumer of such a value is wrong after the first fold. Fix: delete the cache; consumers read their own container width (`view.bounds`, `GeometryReader`) or size class at layout time. Do not "fix" it by re-reading `UIScreen.main` on each access — still the wrong screen under multiple scenes.
 
+### Sizes a view keeps from its first layout
+
+A presented sheet changes width while it stays up: folding into the book pose takes an automatic form sheet from 653 to 459.3 pt (`arrangements-and-reserved-regions.md`, the sheet table). Anything that computes item sizes from its width once — a collection layout that caches its attributes, a flow layout whose `itemSize` was set at load, a third-party calendar — keeps the flat width, and its last column runs past the folded sheet's edge. DMV's exam-date calendar (JTAppleCalendar) lost its last column and the frame of the selected day that way (EE-5321).
+
+Apple's step above allows `viewDidLayoutSubviews`, but for a view nested deeper it comes too early: "this method being called *does not* indicate that the individual layouts of the view's subviews have been adjusted. Each subview is responsible for adjusting its own layout" (UIViewController documentation). Measured 2026-10-31 on the Duo simulator (runtime 24B91014) with a 7-column grid in a scroll view inside a `.formSheet`: on the fold, the controller's `viewDidLayoutSubviews` ran with the sheet at 459.3 pt and the grid still at 653 pt. A day width set there stayed 93.3 pt, and the folded sheet showed five of the seven columns; folded back flat, the width set there was the folded one, and the grid filled 459 of 653 pt. Set from the grid's own `layoutSubviews`, it followed both ways.
+
+- Size the items in the view's own `layoutSubviews`, where its final width is known.
+- Reload or invalidate on the next run-loop turn, outside the layout pass, and only when the laid-out width differs from the new one.
+- Compare the width again after each reload: JTAppleCalendar ignores reload calls while it reloads, so a second change that arrived meanwhile was lost (DMV, not re-checked).
+- Test two changes in a row. DMV's render test narrows the sheet 459 → 447 → 430 pt and checks the calendar each time; its sheet, sized from the trailing column, changed width twice when the Duo unfolded with it up. An automatic form sheet widened once in the probe, 450 → 653 pt.
+
 ### State survives the fold
 
 A layout transition must not become an application-state transition. Opening, closing or dragging a Split View divider re-evaluates size classes repeatedly; anything whose identity is keyed on them is rebuilt from scratch.

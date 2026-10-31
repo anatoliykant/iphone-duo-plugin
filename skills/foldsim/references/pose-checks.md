@@ -15,7 +15,7 @@ the fold). This list is about seeing them in the simulator.
 | `closed-portrait` | cover | 466 × 678 | the compact layout the app had on any iPhone |
 | `closed-landscape` | cover | 678 × 466 | landscape only if the app allows it on the Duo (§3) |
 | `tent` | cover, landscape-right | 678 × 466 | the same as closed landscape: the app sees a closed Duo, in the other landscape |
-| `book` | inner, landscape, hinge 110° | 951 × 669 | nothing interactive on the vertical fold band (x ≈ 455–495), columns split at the fold, scrolling across it horizontal |
+| `book` | inner, landscape, hinge 110° | 951 × 669 | nothing interactive on the vertical fold band (x ≈ 455–495), columns split at the fold, scrolling across it horizontal; a sheet shrinks to one pane, 459 pt with 12 pt in the band — the last column of a grid or calendar in it |
 | `open-landscape` | inner | 951 × 669 | the regular layout, vertical bars at the side |
 | `open-portrait` | inner | 669 × 951 | the only pose with horizontal bars |
 | `table` | inner, portrait, hinge 110° | 669 × 951 | content in the top half, controls in the bottom half, nothing on the horizontal fold band (y ≈ 455–495) |
@@ -23,7 +23,22 @@ the fold). This list is about seeing them in the simulator.
 - **Continuity.** The tour ends where it began; compare its first and last screenshots. Scroll
   position, selection, text being typed and an open sheet should survive the trip.
 - **Transitions, not only poses.** Run `foldsim hinge open` and `hinge closed` with the app on a
-  screen that has state, and watch for a flash of the wrong layout or a lost scroll position.
+  screen that has state, and watch for a flash of the wrong layout or a lost scroll position. With a
+  sheet up, fold to `book` and back: a grid in it that keeps its first width runs past the folded sheet
+  or leaves a gap in the flat one.
+- **Record the fold where a layout depends on it.** Flat and book differ only in the fold region's
+  `isActive`, and a SwiftUI layout keyed to it jumps unless the app animates it, while UIKit layouts and
+  sheets animate (iphone-duo skill, "A fold reaches SwiftUI without an animation"). Record the inner
+  display — its `displayId` is in `foldsim --json state`, 3 on the simulator — around the move:
+
+  ```bash
+  xcrun simctl io <udid> recordVideo --display=3 --force fold.mov &   # stop it with kill -INT
+  foldsim -d <udid> pose book
+  ```
+
+  The file gains a frame only when the picture changes; pull one out with
+  `ffmpeg -ss <seconds> -i fold.mov -frames:v 1 frame.png`. Measured 2026-10-31: the recording showed a
+  sheet sliding into the trailing pane.
 - **An inactive display is black** in its screenshot; that is expected.
 
 ## 2. The hinge gate — Duo-only behaviour only on the Duo
@@ -74,6 +89,9 @@ such a window measure the scene instead of the size they asked for.
   shared popup only on the open Duo.
 - Suites that need the open Duo (two columns, the fold) fail on a closed one — eight failures in DMV's
   unit tests, green when open. Run them on their own after `foldsim pose open-landscape`, one run per pose.
+- Open is two poses with one window: flat (`open-landscape`) and `book` differ only in the fold
+  region's `isActive`. A test written for one fails in the other — pin the pose before the run, or
+  branch the test on `isActive`.
 
 The measured details are in the iphone-duo skill: `iphone-duo/references/testing-and-sources.md`
 §Proxies, item 4.
