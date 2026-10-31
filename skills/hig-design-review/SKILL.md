@@ -16,9 +16,9 @@ corresponding block and stop — no repo reads, toolchain gate, network calls or
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `hig-design-review 1.4.0` · Duo rules D1–D32 · HIG re-checked 2026-10-28, text unchanged since 2026-09-21 (page change log 2026-09-09)
+> `hig-design-review 1.4.1` · Duo rules D1–D32 · HIG re-checked 2026-10-28, text unchanged since 2026-09-21 (page change log 2026-09-09)
 
-<!-- skill-version: 1.4.0 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.4.1 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
 The literal lives in the skill body so it also works in skills-only installs without either
 plugin manifest. CI keeps it equal to root `plugin.json` (Codex / Agent Plugins) and

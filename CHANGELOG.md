@@ -7,6 +7,51 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.4.1] — 2026-10-31
+
+Takes in a DMV session's second set of Duo fixes ([PR #1634](https://github.com/elegant-elearning/mobile-iOS/pull/1634)).
+Each finding was checked with a probe app on a Duo simulator (runtime 24B91014) where the simulator can show
+it; the rest are marked as DMV's. Two did not repeat and are written down as such: deep links timing out on the
+closed Duo, and a root `.transaction` that fails to stop a descendant's animation. Left out as not specific to
+the Duo: a custom bar glyph versus the nearest SF Symbol, the dismissal of a custom sheet, and aligning two UIKit
+tables side by side.
+
+### Fixed
+
+- **The fold's keep-clear zone is the division region's `frame`: 40 pt on the simulator, not 80.** 1.3.3 read the
+  20 pt `margins` as extra space around `frame` and doubled the zone to 80 pt (x or y 435–515). Apple's
+  `ReservedRegion` pages and the 27.2 RC SDK header say the frame already includes the margins, and the simulator
+  agrees: a split `ArrangementView` leaves exactly the 40 pt band between its panes in the book and table poses, on
+  both Duo runtimes. Found by a DMV session, whose layouts had padded the frame a second time and kept columns 40 pt
+  from the fold instead of 20. The design-review rules and the source list no longer repeat the 80 pt figure.
+- **foldsim: opening a Duo right after it boots no longer ends in exit 4.** devicectl can miss that first
+  switch and keep marking the cover display active for good, while the inner display shows the interface;
+  `pose open-landscape` then reported "the inner display did not become active at 180°" although the Duo had
+  opened (DMV). When exactly one display's backlight is on, foldsim now takes that one as active, and
+  `selftest` checks the four flag pairs measured on the simulator. Also measured: a Duo shut down open came
+  back closed after each of five reboots, so read `state` after booting.
+
+### Added
+
+- **`bounds.origin` in a custom `Layout`** (iphone-duo): from Apple's `ReservedRegion` page, compute against
+  `(0, 0)` and add `bounds.origin` only when placing each view.
+- **A fold reaches SwiftUI without an animation** (iphone-duo, reserved regions; measured). Going flat ↔ book,
+  the views that depend on the division region got a transaction with no animation, so a SwiftUI layout keyed to
+  the fold jumps, while a UIKit view reading the regions in `layoutSubviews` was laid out inside a 0.5 s
+  animation. `.animation(.smooth, value: kind)` on the container animates it, as does DMV's switch of a
+  `@State` layout kind with `withAnimation(.smooth)` plus `matchedGeometryEffect`; no animation under Reduce
+  Motion. Tell the table pose from the fold's frame, not by comparing pane edges, which read a zero-height
+  window as a table.
+- **Columns that meet closer than the band when flat** (iphone-duo): DMV's mockups put them 18 and 9 pt from
+  the centre line. The query without `.includeInactive` is empty flat, so take the line from the inactive
+  region and switch to the active frame's edges when the device folds.
+- **Testing** (iphone-duo): snapshots of a layout that animates its switch — wait until two snapshots about
+  50 ms apart match; the Swift Testing trait that gates fold-dependent suites; `simctl openurl` works on the
+  closed and the open Duo (measured) and asks "Open in …?" once per fresh simulator; a three-digit Live
+  Activity counter that needed 13 pt, and the Dynamic Island missing from `simctl` screenshots (DMV's).
+- **Design review**: D14 gains DMV's media + text screen in the book pose — the whole image in the leading
+  column, the text in the trailing one, rather than an empty leading half.
+
 ## [1.4.0] — 2026-10-30
 
 A third skill, **foldsim**: the plugin now puts a simulator into every pose itself instead of sending you to

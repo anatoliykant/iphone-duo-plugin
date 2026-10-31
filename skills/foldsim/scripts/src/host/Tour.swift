@@ -168,6 +168,23 @@ enum SelfTest {
         for (role, target, expected) in turns where DeviceOrientation.turning(role, to: target) != expected {
             failures.append("\(role.rawValue) \(target.rawValue) should come from device \(expected.devicectlName)")
         }
+        // Which Duo display is active, from devicectl's `active` and backlight pairs (Xcode 27.2 RC).
+        let flags: [(cover: (Bool, String), inner: (Bool, String), active: Display.Role, name: String)] = [
+            ((true, "off"), (false, "activeOn"), .inner, "opened right after boot"),
+            ((true, "activeOn"), (false, "activeOn"), .cover, "booted or just closed"),
+            ((false, "off"), (true, "activeOn"), .inner, "open"),
+            ((true, "activeOn"), (false, "off"), .cover, "closed"),
+        ]
+        for sample in flags {
+            let entries = [(1, true, sample.cover), (3, false, sample.inner)].map { id, primary, flag in
+                ["name": id == 1 ? "LCD" : "LCD-1", "displayId": id, "uniqueId": "\(id)", "primary": primary,
+                 "active": flag.0, "backlightState": flag.1, "bounds": [[0.0, 0.0], [1398.0, 2034.0]]] as [String: Any]
+            }
+            let active = Display.parse(entries, kind: .duo).filter(\.active).map(\.role)
+            if active != [sample.active] {
+                failures.append("\(sample.name): the active display should be \(sample.active.rawValue), not \(active.map(\.rawValue))")
+            }
+        }
         return failures
     }
 }

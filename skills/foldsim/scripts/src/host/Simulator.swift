@@ -175,14 +175,23 @@ struct Display {
 
     static func all(of device: Device) throws -> [Display] {
         let result = try Xcrun.json(["devicectl", "device", "info", "displays", "--device", device.udid, "--json-output", "-"])
-        let entries = (result["result"] as? [String: Any])?["displays"] as? [[String: Any]] ?? []
+        return parse((result["result"] as? [String: Any])?["displays"] as? [[String: Any]] ?? [], kind: device.kind)
+    }
+
+    static func parse(_ displays: [[String: Any]], kind: Device.Kind) -> [Display] {
+        let entries = displays.filter { ($0["name"] as? String)?.hasPrefix("LCD") == true }
+        // Opened right after it boots, a Duo shows the inner display while devicectl keeps `active` on
+        // the cover for good; only the inner display's backlight is on then. Booted or just closed,
+        // both backlights can be on, and `active` is right. Xcode 27.2 RC, runtime 24B91014.
+        let lit = entries.filter { ($0["backlightState"] as? String)?.hasPrefix("active") == true }
         return entries.compactMap { entry -> Display? in
-            guard (entry["name"] as? String)?.hasPrefix("LCD") == true, let id = entry["displayId"] as? Int,
+            guard let id = entry["displayId"] as? Int,
                   let uuid = entry["uniqueId"] as? String, let bounds = entry["bounds"] as? [[Double]],
                   bounds.count == 2, bounds[1].count == 2 else { return nil }
             let primary = entry["primary"] as? Bool ?? true
-            return Display(role: device.kind == .duo ? (primary ? .cover : .inner) : .main, id: id, uuid: uuid,
-                           active: entry["active"] as? Bool ?? true, panelWidth: bounds[1][0], panelHeight: bounds[1][1],
+            let active = lit.count == 1 ? lit[0]["displayId"] as? Int == id : entry["active"] as? Bool ?? true
+            return Display(role: kind == .duo ? (primary ? .cover : .inner) : .main, id: id, uuid: uuid,
+                           active: active, panelWidth: bounds[1][0], panelHeight: bounds[1][1],
                            scale: entry["pointScale"] as? Double ?? 1, rotation: entry["currentOrientation"] as? String ?? "rot0")
         }.sorted { $0.id < $1.id }
     }

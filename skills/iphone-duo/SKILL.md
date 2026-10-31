@@ -16,9 +16,9 @@ corresponding block and stop — no repo reads, toolchain gate, network calls or
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `iphone-duo 1.4.0` · needs Xcode 27.2 RC or later · references SDK-verified 2026-10-28 against Xcode 27.2 RC (27B48) and the released 27.1 · labs 285–288 · design rules D1–D32
+> `iphone-duo 1.4.1` · needs Xcode 27.2 RC or later · references SDK-verified 2026-10-28 against Xcode 27.2 RC (27B48) and the released 27.1 · labs 285–288 · design rules D1–D32
 
-<!-- skill-version: 1.4.0 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.4.1 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
 The literal lives in the skill body so it also works in skills-only installs without either
 plugin manifest. CI keeps it equal to root `plugin.json` (Codex / Agent Plugins) and

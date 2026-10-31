@@ -14,9 +14,9 @@ skills-only install). For a flag-only request, print only the corresponding bloc
 
 **`-v` / `--version`** — answer in one line, from the literal below:
 
-> `foldsim 1.4.0` · Xcode 27.2 RC or later on Apple silicon · measured 2026-10-30 on the Duo runtimes 24B91014 (27.2 RC) and 24A94425 (27.1), iPhone 18 Pro Max and iPad Pro 13-inch (M5) on 24B114
+> `foldsim 1.4.1` · Xcode 27.2 RC or later on Apple silicon · measured 2026-10-30 on the Duo runtimes 24B91014 (27.2 RC) and 24A94425 (27.1), iPhone 18 Pro Max and iPad Pro 13-inch (M5) on 24B114
 
-<!-- skill-version: 1.4.0 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
+<!-- skill-version: 1.4.1 — kept equal to both plugin manifests by .github/workflows/version-consistency.yml -->
 
 **`-h` / `--help`** — print this, verbatim:
 
@@ -87,7 +87,8 @@ Measured with the probe app in `tests/foldsim-probe` of the plugin repository (X
   landscape-right), and `pose tent` keeps it so. In a tent the device orientations reach the cover half
   a turn off; `rotate` reads back where the display ended instead of trusting its table. Right after
   the hinge moves, devicectl can report the other display as active for a moment — foldsim waits for
-  it to settle.
+  it to settle. Opened right after it boots, a Duo shows the inner display while devicectl keeps the
+  cover `active` for good; foldsim then goes by the one display whose backlight is on.
 - **Rotation.** The Duo ignores `devicectl device orientation set`; foldsim sends Device Hub's own
   event. iPhone and iPad use devicectl. The inner display shows portrait upside down; an iPhone,
   and the Duo's cover, never do.

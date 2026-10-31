@@ -89,5 +89,9 @@ The measured details are in the iphone-duo skill: `iphone-duo/references/testing
   displays until it is recreated. foldsim never jumps; Device Hub's buttons can.
 - Screenshots and recordings of a Duo can be black for a few minutes after boot (Xcode 27.2 RC known
   issue 187146039).
+- A Duo shut down open came back closed (hinge 0°) in each of five reboots: run `foldsim state` after
+  booting instead of assuming the pose. Opened right after the boot, it showed the inner display
+  while devicectl kept marking the cover active; foldsim 1.4.0 took that for a failed open (exit 4),
+  1.4.1 reads the displays' backlight instead.
 - VoiceOver and Accessibility Inspector cannot read a Duo inside Device Hub (Xcode 27.2 RC); check
   accessibility on an iPhone or iPad simulator, or on hardware.

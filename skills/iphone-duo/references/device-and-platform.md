@@ -112,6 +112,8 @@ Lab 287 13:49: every widget size StandBy supports on other iPhones works on Duo,
 - **`isDynamicIslandLimitedInWidth`** **SDK(27.0)** (`EnvironmentValues`, declared in WidgetKit). Apple: "In some devices and context, the system adapts the flexible width of compact and minimal Live Activities and renders them smaller; for example, on iPhone in landscape orientation or on iPhone Duo. Use the `isDynamicIslandLimitedInWidth` environment value to adapt views you provide to compact and minimal Live Activity presentations."
   - DMV hit this on the Duo: a "10/94" counter in the compact presentation was cut off (EE-5233, Xcode 27.2 RC).
   - Their fix reads the value, drops fixed `frame(width:)`, and allows two lines plus a `minimumScaleFactor`. The text wrapped before it scaled.
+  - Two lines are not always enough: a three-digit "106/150" was still cut at 15 and 11 pt bold and fit at 13 and 10 pt, with the logo at `scaleEffect(0.8)` (PR #1634). Try the longest value the activity can show.
+  - Screenshots: `simctl io … screenshot` leaves the Dynamic Island out; capture Device Hub's window instead, `screencapture -x -o -l <windowID>` (DMV, not re-checked — the Duo runtime has no app with a Live Activity of its own to try it on).
   - The value is also true on other iPhones in landscape, so anything keyed to it changes there as well (rule 14). Keep the change to what makes the content fit.
 - An alarm-clock face on the folded device is AlarmKit plus a good countdown Live Activity, not a scene accessory (DTS summary).
 - Testing: StandBy is unavailable in the iPhone Duo simulator runtime (Xcode 27.1 release notes, 187708663).
