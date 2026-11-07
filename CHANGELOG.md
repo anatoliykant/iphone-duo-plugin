@@ -9,28 +9,28 @@ matching git tag. See README.md for the update commands for each host.
 
 ## [1.4.4] — 2026-11-07
 
-Corrects 1.4.3 with the DMV session's recordings of the Challenge Bank screen, shared the same day.
+Corrects 1.4.3 with recordings of a test app's own screen, shared the same day.
 
 ### Fixed
 
-- **What made DMV's switch jump** (iphone-duo, reserved regions, sources; foldsim pose checks). 1.4.3 blamed
-  `.transition(.identity)` on the layout's two branches. DMV's recordings rule that out (Duo simulator,
+- **What made the test app's switch jump** (iphone-duo, reserved regions, sources; foldsim pose checks). 1.4.3 blamed
+  `.transition(.identity)` on the layout's two branches. The app's recordings rule that out (Duo simulator,
   runtime 24B91014, 2026-11-05). With the fold read outside the `ArrangementView`, the same layout with
   `.transition(.identity)` and `matchedGeometryEffect` animated: a run of 36 frames over 0.58 s. With the fold
   read inside, every variant jumped, including `withAnimation`, `.animation(_:value:)`, the same call after
   `DispatchQueue.main.async`, and an `.opacity` on a view whose branch did not change. The 1.4.3 claim came
   from a simplified copy of the screen that jumped even without an arrangement. A minimal probe still keeps
-  the animations it starts inside a pane, so what triggers the loss in DMV's app is not known. The advice to
+  the animations it starts inside a pane, so what triggers the loss in that app is not known. The advice to
   read the fold on the `ArrangementView` stands.
-- **Judge a recording by the move out of a pose** (foldsim pose checks; DMV's method). Going into a pose,
+- **Judge a recording by the move out of a pose** (foldsim pose checks; the test app's method). Going into a pose,
   the simulator redraws the folded half as the hinge moves, so every variant shows a run of frames.
 
 ## [1.4.3] — 2026-11-07
 
-Takes in one finding from a DMV session's fourth set of Duo fixes ([PR #1678](https://github.com/elegant-elearning/mobile-iOS/pull/1678), EE-5361):
+Takes in one finding from a test app's fourth set of Duo fixes:
 read the fold outside `ArrangementView`, because a `withAnimation` started inside it ends at once. It was
 checked with a probe app on a Duo simulator (runtime 24B91014, Xcode 27.2 RC), under a SwiftUI and a UIKit
-host, with the overlay, split and default styles and a copy of DMV's Challenge Bank layout. The advice holds,
+host, with the overlay, split and default styles and a copy of one of the app's layouts. The advice holds,
 for a different reason, and the early end did not repeat.
 
 ### Added
@@ -38,9 +38,9 @@ for a different reason, and the early end did not repeat.
 - **Read the fold on the `ArrangementView`, not inside its panes** (iphone-duo, reserved regions and
   anti-patterns; measured). A pane that the arrangement keeps beside the fold gets no division region, even
   with `.includeInactive`, so a reader inside it never sees the pose change. Read the region on the
-  `ArrangementView` or above it and pass the fold into the content as a value, as DMV does; `withAnimation`
+  `ArrangementView` or above it and pass the fold into the content as a value, as the test app does; `withAnimation`
   there animated the change with every style.
-- **What made DMV's switch jump** (iphone-duo; measured; wrong, corrected in 1.4.4). Where the pane stays across the fold, an animation
+- **What made the test app's switch jump** (iphone-duo; measured; wrong, corrected in 1.4.4). Where the pane stays across the fold, an animation
   started inside it ran its full 0.5 s, from `onGeometryChange`, after `DispatchQueue.main.async` or as
   `.animation(value:)`. The jump came from two `if`/`else` branches with `.transition(.identity)` tied with
   `matchedGeometryEffect`: they switched in one frame with or without an arrangement, even from a timer, and
@@ -54,10 +54,10 @@ for a different reason, and the early end did not repeat.
 
 ## [1.4.2] — 2026-10-31
 
-Takes in a DMV session's third set of Duo findings ([PR #1649](https://github.com/elegant-elearning/mobile-iOS/pull/1649), EE-5320 and EE-5321).
+Takes in a test app's third set of Duo findings.
 Each was checked against the 27.2 RC SDK or with a probe app on a Duo simulator (runtime 24B91014); what the
-simulator cannot show is marked as DMV's. Measuring the sheets went past the report: in the book pose a sheet
-reaches 12 pt into the fold band, and its safe area does not say so. Left out as DMV's own: the column offsets
+simulator cannot show is marked as the app's. Measuring the sheets went past the report: in the book pose a sheet
+reaches 12 pt into the fold band, and its safe area does not say so. Left out as the app's own: the column offsets
 of its layouts and the ±8 pt band its tests keep empty; flagging every flat layout that ignores the fold
 became a softer rule, since Apple lets flat layouts sit off-centre.
 
@@ -65,8 +65,8 @@ became a softer rule, since Apple lets flat layouts sit off-centre.
 
 - **Animate on the fold, not on the layout kind** (iphone-duo, reserved regions). 1.4.1 suggested
   `.animation(.smooth, value: kind)`, but a resize in Split View can switch the kind as well, and an animated
-  switch then trails the divider (DMV). Key the animation to the region's `isActive`, as the probe did; DMV
-  animates only when `isActive` flipped while the window kept its size.
+  switch then trails the divider (the test app). Key the animation to the region's `isActive`, as the probe did;
+  the app animates only when `isActive` flipped while the window kept its size.
 
 ### Added
 
@@ -75,13 +75,13 @@ became a softer rule, since Apple lets flat layouts sit off-centre.
   `.trailing` — and stops 8 pt short of the crease, so 12 pt of it lie inside the 40 pt band. Neither its safe
   area nor its layout margins cover that strip; the division region read inside the sheet does. Content clear
   of the band has about 447 pt. A trailing sheet whose `preferredContentSize` is no wider than the room
-  beside the band — 447.5 pt, DMV's approach — stayed at x 495.5–943 in both poses; a wider one was squeezed
+  beside the band — 447.5 pt, the test app's approach — stayed at x 495.5–943 in both poses; a wider one was squeezed
   into the pane and back into the band. Design rule D18 now flags sheet content of fixed width that fits only
   flat.
 - **Sizes a view keeps from its first layout** (iphone-duo layout, testing, foldsim pose checks; measured). A
   grid that computes its day width once keeps the flat width when the fold narrows its sheet, and its last
-  column runs past the edge — DMV's JTAppleCalendar lost its last column and the selected day's frame that way
-  (EE-5321). In a probe, the sheet controller's `viewDidLayoutSubviews` still saw the nested grid's old width,
+  column runs past the edge — the test app's JTAppleCalendar lost its last column and the selected day's frame that way.
+  In a probe, the sheet controller's `viewDidLayoutSubviews` still saw the nested grid's old width,
   as Apple's documentation warns, so a width set there stayed wrong; set from the grid's own `layoutSubviews`
   and applied on the next run-loop turn, it followed both ways. Compare the width again after each reload, and
   test two changes in a row.
@@ -96,16 +96,16 @@ became a softer rule, since Apple lets flat layouts sit off-centre.
 - **Recording the fold** (foldsim pose checks): `simctl io recordVideo --display=3` around
   `foldsim pose book`, tried on the simulator.
 - **foldsim `screenshot` prints the state after the files** (`--json`: `state`) — hinge angle, active display,
-  orientation — so a picture of the book pose cannot pass for a flat one. DMV had two identical screenshots
+  orientation — so a picture of the book pose cannot pass for a flat one. The test app had two identical screenshots
   and could not tell whether the pose had changed.
 - **Design review**: D25 asks for one rule for flat two-column splits across an app's screens. Flat may sit
-  off-centre, as Apple's split views do at about 35/65; DMV's screens meet the fold line.
+  off-centre, as Apple's split views do at about 35/65; the test app's screens meet the fold line.
 
 ## [1.4.1] — 2026-10-31
 
-Takes in a DMV session's second set of Duo fixes ([PR #1634](https://github.com/elegant-elearning/mobile-iOS/pull/1634)).
+Takes in a test app's second set of Duo fixes.
 Each finding was checked with a probe app on a Duo simulator (runtime 24B91014) where the simulator can show
-it; the rest are marked as DMV's. Two did not repeat and are written down as such: deep links timing out on the
+it; the rest are marked as the app's. Two did not repeat and are written down as such: deep links timing out on the
 closed Duo, and a root `.transaction` that fails to stop a descendant's animation. Left out as not specific to
 the Duo: a custom bar glyph versus the nearest SF Symbol, the dismissal of a custom sheet, and aligning two UIKit
 tables side by side.
@@ -116,12 +116,12 @@ tables side by side.
   20 pt `margins` as extra space around `frame` and doubled the zone to 80 pt (x or y 435–515). Apple's
   `ReservedRegion` pages and the 27.2 RC SDK header say the frame already includes the margins, and the simulator
   agrees: a split `ArrangementView` leaves exactly the 40 pt band between its panes in the book and table poses, on
-  both Duo runtimes. Found by a DMV session, whose layouts had padded the frame a second time and kept columns 40 pt
+  both Duo runtimes. Found while adapting a test app, whose layouts had padded the frame a second time and kept columns 40 pt
   from the fold instead of 20. The design-review rules and the source list no longer repeat the 80 pt figure.
 - **foldsim: opening a Duo right after it boots no longer ends in exit 4.** devicectl can miss that first
   switch and keep marking the cover display active for good, while the inner display shows the interface;
   `pose open-landscape` then reported "the inner display did not become active at 180°" although the Duo had
-  opened (DMV). When exactly one display's backlight is on, foldsim now takes that one as active, and
+  opened (a test app). When exactly one display's backlight is on, foldsim now takes that one as active, and
   `selftest` checks the four flag pairs measured on the simulator. Also measured: a Duo shut down open came
   back closed after each of five reboots, so read `state` after booting.
 
@@ -132,18 +132,18 @@ tables side by side.
 - **A fold reaches SwiftUI without an animation** (iphone-duo, reserved regions; measured). Going flat ↔ book,
   the views that depend on the division region got a transaction with no animation, so a SwiftUI layout keyed to
   the fold jumps, while a UIKit view reading the regions in `layoutSubviews` was laid out inside a 0.5 s
-  animation. `.animation(.smooth, value: kind)` on the container animates it, as does DMV's switch of a
+  animation. `.animation(.smooth, value: kind)` on the container animates it, as does a test app's switch of a
   `@State` layout kind with `withAnimation(.smooth)` plus `matchedGeometryEffect`; no animation under Reduce
   Motion. Tell the table pose from the fold's frame, not by comparing pane edges, which read a zero-height
   window as a table.
-- **Columns that meet closer than the band when flat** (iphone-duo): DMV's mockups put them 18 and 9 pt from
+- **Columns that meet closer than the band when flat** (iphone-duo): a test app's mockups put them 18 and 9 pt from
   the centre line. The query without `.includeInactive` is empty flat, so take the line from the inactive
   region and switch to the active frame's edges when the device folds.
 - **Testing** (iphone-duo): snapshots of a layout that animates its switch — wait until two snapshots about
   50 ms apart match; the Swift Testing trait that gates fold-dependent suites; `simctl openurl` works on the
   closed and the open Duo (measured) and asks "Open in …?" once per fresh simulator; a three-digit Live
-  Activity counter that needed 13 pt, and the Dynamic Island missing from `simctl` screenshots (DMV's).
-- **Design review**: D14 gains DMV's media + text screen in the book pose — the whole image in the leading
+  Activity counter that needed 13 pt, and the Dynamic Island missing from `simctl` screenshots (the test app's).
+- **Design review**: D14 gains a test app's media + text screen in the book pose — the whole image in the leading
   column, the text in the trailing one, rather than an empty leading half.
 
 ## [1.4.0] — 2026-10-30
@@ -154,9 +154,9 @@ Apple's open-source headers and the mechanisms described by two MIT projects (se
 taken from them. Every command was checked against a probe app on throwaway simulators: Xcode 27.2 RC, Duo
 runtimes 24B91014 (27.2 RC) and 24A94425 (27.1), iPhone 18 Pro Max and iPad Pro 13-inch (M5) on 24B114.
 
-The release also takes in what a DMV session learned fixing six Duo QA bugs ([PR #1633](https://github.com/elegant-elearning/mobile-iOS/pull/1633)).
+The release also takes in what fixing six Duo QA bugs in a test app taught.
 Each finding was measured on a Duo simulator first (runtime 24B91014); the ones that could not be measured
-are marked as DMV's.
+are marked as the app's.
 
 ### Added
 
@@ -192,7 +192,7 @@ are marked as DMV's.
   - touches through a virtual touchscreen land within a point of the target on every display and rotation;
     like a finger's, they do not reach the app under an iPhone's status bar in portrait or outside a rounded
     display corner.
-- **From DMV's Duo fixes, measured** (iphone-duo):
+- **From a test app's Duo fixes, measured** (iphone-duo):
   - `bars-and-toolbars`: a full-screen overlay stays under the vertical bar, so hide its items with
     `isHidden` (gone from the bar and the accessibility tree), not `isEnabled = false` (still there, dimmed);
     a `UIHostingController` throws away `toolbarItems` set from UIKit at launch and again when the Duo
@@ -224,8 +224,7 @@ are marked as DMV's.
 
 ## [1.3.3] — 2026-10-30
 
-Findings from two DMV sessions fixing iPhone Duo QA bugs ([PR #1633](https://github.com/elegant-elearning/mobile-iOS/pull/1633)
-and branch `bugfix/ee-5202-iphone-duo-qa-fixes`). Each one was re-measured on the simulators first: Xcode 27.2 RC, Duo
+Findings from fixing iPhone Duo QA bugs in a test app. Each one was re-measured on the simulators first: Xcode 27.2 RC, Duo
 runtime 24B91014, iPhone 18 Pro Max and iPad Pro 13-inch on 24B114. Two of them did not reproduce as first described
 and were narrowed down before going in.
 

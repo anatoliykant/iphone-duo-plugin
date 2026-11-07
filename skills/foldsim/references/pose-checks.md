@@ -41,7 +41,7 @@ the fold). This list is about seeing them in the simulator.
   sheet sliding into the trailing pane. `ffprobe -v error -show_entries frame=pts_time -of csv=p=0 fold.mov`
   lists when frames came: an animated switch is a run of frames over about half a second, a jump a few
   separate frames. Judge by the move out of a pose, such as table → flat. On the way in, the simulator
-  redraws the folded half as the hinge moves, so every variant shows a run of frames (DMV, 2026-11-05).
+  redraws the folded half as the hinge moves, so every variant shows a run of frames (a test app, 2026-11-05).
   Trust the recording over `withAnimation`'s completion, which fired within 10 ms for switches that jumped
   (2026-11-06).
 - **An inactive display is black** in its screenshot; that is expected.
@@ -90,9 +90,9 @@ such a window measure the scene instead of the size they asked for.
 - Run the suite on the Duo and on an iPhone 18 Pro Max: the iPhone keeps every window size, so a
   test that passes there and fails on the Duo is hitting the resize.
 - A change to a shared component — a sheet, a bar, a cell used on many screens — needs every suite that
-  renders it, in every pose, not only the new tests. In DMV a merge broke an older geometry test of a
+  renders it, in every pose, not only the new tests. In a test app a merge broke an older geometry test of a
   shared popup only on the open Duo.
-- Suites that need the open Duo (two columns, the fold) fail on a closed one — eight failures in DMV's
+- Suites that need the open Duo (two columns, the fold) fail on a closed one — eight failures in a test app's
   unit tests, green when open. Run them on their own after `foldsim pose open-landscape`, one run per pose.
 - Open is two poses with one window: flat (`open-landscape`) and `book` differ only in the fold
   region's `isActive`. A test written for one fails in the other — pin the pose before the run, or
