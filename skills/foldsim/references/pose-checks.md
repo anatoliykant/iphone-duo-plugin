@@ -38,7 +38,11 @@ the fold). This list is about seeing them in the simulator.
 
   The file gains a frame only when the picture changes; pull one out with
   `ffmpeg -ss <seconds> -i fold.mov -frames:v 1 frame.png`. Measured 2026-10-31: the recording showed a
-  sheet sliding into the trailing pane.
+  sheet sliding into the trailing pane. `ffprobe -v error -show_entries frame=pts_time -of csv=p=0 fold.mov`
+  lists when frames came: an animated switch is a run of frames over about half a second, a jump one or
+  two. Trust the recording over `withAnimation`'s completion: a switch between two branches with
+  `.transition(.identity)` jumped while its completion fired within 10 ms, as if done (measured
+  2026-11-06).
 - **An inactive display is black** in its screenshot; that is expected.
 
 ## 2. The hinge gate — Duo-only behaviour only on the Duo

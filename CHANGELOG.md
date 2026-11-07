@@ -7,6 +7,33 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.4.3] — 2026-11-07
+
+Takes in one finding from a DMV session's fourth set of Duo fixes ([PR #1678](https://github.com/elegant-elearning/mobile-iOS/pull/1678), EE-5361):
+read the fold outside `ArrangementView`, because a `withAnimation` started inside it ends at once. It was
+checked with a probe app on a Duo simulator (runtime 24B91014, Xcode 27.2 RC), under a SwiftUI and a UIKit
+host, with the overlay, split and default styles and a copy of DMV's Challenge Bank layout. The advice holds,
+for a different reason, and the early end did not repeat.
+
+### Added
+
+- **Read the fold on the `ArrangementView`, not inside its panes** (iphone-duo, reserved regions and
+  anti-patterns; measured). A pane that the arrangement keeps beside the fold gets no division region, even
+  with `.includeInactive`, so a reader inside it never sees the pose change. Read the region on the
+  `ArrangementView` or above it and pass the fold into the content as a value, as DMV does; `withAnimation`
+  there animated the change with every style.
+- **What made DMV's switch jump** (iphone-duo; measured). Where the pane stays across the fold, an animation
+  started inside it ran its full 0.5 s, from `onGeometryChange`, after `DispatchQueue.main.async` or as
+  `.animation(value:)`. The jump came from two `if`/`else` branches with `.transition(.identity)` tied with
+  `matchedGeometryEffect`: they switched in one frame with or without an arrangement, even from a timer, and
+  `withAnimation`'s completion fired within 10 ms. With the default transition the switch animated.
+- **Sizes jitter while a layout switches** (iphone-duo; measured): a view whose layout switched with the fold
+  read its height as 786 and 786.00000000000011 pt on alternate passes, with or without an arrangement, and
+  each switch brought a second geometry callback. The `ArrangementView` itself stayed at 786. A "same size"
+  test needs a tolerance.
+- **Count the frames of a recording** (foldsim pose checks): `ffprobe` lists when frames came, and a run over
+  about half a second is an animation; a completion within a few milliseconds is not proof of one.
+
 ## [1.4.2] — 2026-10-31
 
 Takes in a DMV session's third set of Duo findings ([PR #1649](https://github.com/elegant-elearning/mobile-iOS/pull/1649), EE-5320 and EE-5321).
