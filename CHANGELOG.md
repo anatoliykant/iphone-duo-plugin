@@ -7,6 +7,24 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.4.4] — 2026-11-07
+
+Corrects 1.4.3 with the DMV session's recordings of the Challenge Bank screen, shared the same day.
+
+### Fixed
+
+- **What made DMV's switch jump** (iphone-duo, reserved regions, sources; foldsim pose checks). 1.4.3 blamed
+  `.transition(.identity)` on the layout's two branches. DMV's recordings rule that out (Duo simulator,
+  runtime 24B91014, 2026-11-05). With the fold read outside the `ArrangementView`, the same layout with
+  `.transition(.identity)` and `matchedGeometryEffect` animated: a run of 36 frames over 0.58 s. With the fold
+  read inside, every variant jumped, including `withAnimation`, `.animation(_:value:)`, the same call after
+  `DispatchQueue.main.async`, and an `.opacity` on a view whose branch did not change. The 1.4.3 claim came
+  from a simplified copy of the screen that jumped even without an arrangement. A minimal probe still keeps
+  the animations it starts inside a pane, so what triggers the loss in DMV's app is not known. The advice to
+  read the fold on the `ArrangementView` stands.
+- **Judge a recording by the move out of a pose** (foldsim pose checks; DMV's method). Going into a pose,
+  the simulator redraws the folded half as the hinge moves, so every variant shows a run of frames.
+
 ## [1.4.3] — 2026-11-07
 
 Takes in one finding from a DMV session's fourth set of Duo fixes ([PR #1678](https://github.com/elegant-elearning/mobile-iOS/pull/1678), EE-5361):
@@ -22,7 +40,7 @@ for a different reason, and the early end did not repeat.
   with `.includeInactive`, so a reader inside it never sees the pose change. Read the region on the
   `ArrangementView` or above it and pass the fold into the content as a value, as DMV does; `withAnimation`
   there animated the change with every style.
-- **What made DMV's switch jump** (iphone-duo; measured). Where the pane stays across the fold, an animation
+- **What made DMV's switch jump** (iphone-duo; measured; wrong, corrected in 1.4.4). Where the pane stays across the fold, an animation
   started inside it ran its full 0.5 s, from `onGeometryChange`, after `DispatchQueue.main.async` or as
   `.animation(value:)`. The jump came from two `if`/`else` branches with `.transition(.identity)` tied with
   `matchedGeometryEffect`: they switched in one frame with or without an arrangement, even from a timer, and
