@@ -42,8 +42,8 @@ the fold). This list is about seeing them in the simulator.
   lists when frames came: an animated switch is a run of frames over about half a second, a jump a few
   separate frames. Judge by the move out of a pose, such as table → flat. On the way in, the simulator
   redraws the folded half as the hinge moves, so every variant shows a run of frames (a test app, 2026-11-05).
-  Trust the recording over `withAnimation`'s completion, which fired within 10 ms for switches that jumped
-  (2026-11-06).
+  Trust the recording over `withAnimation`'s completion, which fired within 25 ms for switches that jumped
+  (2026-11-06 and 2026-11-08).
 - **An inactive display is black** in its screenshot; that is expected.
 
 ## 2. The hinge gate — Duo-only behaviour only on the Duo

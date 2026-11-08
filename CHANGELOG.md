@@ -7,6 +7,28 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.4.5] — 2026-11-08
+
+Finds what 1.4.4 left open, by bisecting a build of the test app itself on a Duo simulator (runtime 24B91014,
+Xcode 27.2 RC) and then reproducing it in the probe with no fold involved.
+
+### Fixed
+
+- **What made the test app's fold switch jump** (iphone-duo, reserved regions, anti-patterns, sources; foldsim
+  pose checks). The layout switches two `if`/`else` branches with `.transition(.identity)` and ties the elements
+  they share with `matchedGeometryEffect`. An `onGeometryChange` on that view, or on any view above it up to the
+  nearest `ArrangementView`, makes the switch jump, and `withAnimation`'s completion fires within 25 ms. One whose
+  action never runs does it too, and a `VStack` or `.padding` in between does not help. A `GeometryReader` in
+  `.background`, an `ArrangementView` in between, or the default transition keeps the animation. The test app's
+  reader on the `ArrangementView` worked because the arrangement stood between it and the switch; without the
+  arrangement the same reader made it jump.
+
+### Changed
+
+- **The source of the field findings is called a test app** (all references, CHANGELOG, README). Links to its
+  private repository, pull requests and tickets are gone, and the GitHub release notes of 1.3.3–1.4.4 were
+  rewritten the same way.
+
 ## [1.4.4] — 2026-11-07
 
 Corrects 1.4.3 with recordings of a test app's own screen, shared the same day.
