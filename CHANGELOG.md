@@ -7,6 +7,21 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.4.6] — 2026-11-08
+
+Takes in the test app's own bisect of the same switch, which the probe then confirmed.
+
+### Fixed
+
+- **Where an `.identity` switch animates at all** (iphone-duo, reserved regions, anti-patterns, sources). 1.4.5
+  said the test app's reader on the `ArrangementView` worked because the arrangement stood between it and the
+  switch. There is more to it. A `.transition(.identity)` switch tied with `matchedGeometryEffect` animates only
+  inside an `ArrangementView` pane, where it crossfades while the shared elements move. Outside an arrangement it
+  jumps even with no geometry reader, under a UIKit host or a bare `UIHostingController`. Inside the pane, an
+  `onGeometryChange` on the switch or between it and the arrangement turns the animation off, while a modifier
+  that only holds `@State` does not. The default `.opacity` transition animates everywhere, so it is the fallback
+  when a reader has to sit next to the switch.
+
 ## [1.4.5] — 2026-11-08
 
 Finds what 1.4.4 left open, by bisecting a build of the test app itself on a Duo simulator (runtime 24B91014,
