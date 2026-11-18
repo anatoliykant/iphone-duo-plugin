@@ -7,6 +7,18 @@ Each release bumps both `plugin.json` (Codex / Agent Plugins) and
 `.claude-plugin/plugin.json` (Claude Code), plus the version literals in both skills, and uses a
 matching git tag. See README.md for the update commands for each host.
 
+## [1.4.7] — 2026-11-18
+
+Folds in three details from Apple's reserved-region pages, re-read after a third-party article on `ReservedRegion`.
+
+### Added
+
+- **What a reserved-region query returns, and when UIKit asks again** (iphone-duo, reserved regions, sources). A
+  query returns only the regions that overlap the view it is made on, so an empty answer is about that view, not
+  the display, and a reader inside the safe area can miss the occlusions at its edges. In UIKit, regions read in
+  `updateConstraints()` make it run again when they change. In SwiftUI, `layoutDirectionBehavior: .fixed` gives
+  unmirrored frames, and mirroring a frame by hand on top of the default `.mirrors` flips it twice.
+
 ## [1.4.6] — 2026-11-08
 
 Takes in the test app's own bisect of the same switch, which the probe then confirmed.
